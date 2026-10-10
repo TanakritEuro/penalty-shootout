@@ -33,6 +33,25 @@ export const TUNING = {
     /** Reticle radius (m) when the shot is accurate. It grows with overpower scatter. */
     reticleRadius: 0.22,
   },
+  match: {
+    /** Seconds the "Penalty shootout" banner shows before the first kick (click to skip). */
+    introDuration: 2.5,
+  },
+  cpuKicker: {
+    /** Seconds between the kick being set up and the computer striking it. */
+    runUpTime: 1.1,
+    /** Power range (0–1). Past the overpower threshold the computer can skew it too. */
+    minPower: 0.55,
+    maxPower: 0.95,
+    /** Chance of going down the middle instead of picking a side. */
+    centreChance: 0.12,
+    /** Range of distances from the centre (m) when picking a side. Posts are at 3.66. */
+    minSideX: 1.2,
+    maxSideX: 3.3,
+    /** Height range (m) of the target. */
+    minY: 0.2,
+    maxY: 2.2,
+  },
   keeper: {
     /** Starting difficulty; keys 1 / 2 / 3 switch level during play. */
     level: 'normal' as KeeperLevelName,

@@ -1,11 +1,14 @@
 import { TUNING } from '../config';
+import { SHOOTOUT_KICKS } from '../constants';
+import type { Shootout, Side } from '../match/shootout';
+import type { Team } from '../match/teams';
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-/** DOM overlay: status line, power meter, result banner and a running tally. */
+/** DOM overlay: status line, power meter, result banner, scoreboard and keeper level. */
 export class Hud {
   private readonly status = el<HTMLDivElement>('status');
-  private readonly tally = el<HTMLDivElement>('tally');
+  private readonly scoreboard = el<HTMLDivElement>('scoreboard');
   private readonly level = el<HTMLDivElement>('level');
   private readonly result = el<HTMLDivElement>('result');
   private readonly resultTitle = el<HTMLDivElement>('result-title');
@@ -21,8 +24,29 @@ export class Hud {
     this.status.textContent = text;
   }
 
-  setTally(goals: number, shots: number): void {
-    this.tally.textContent = `Goals ${goals} / ${shots}`;
+  /** Team names, a dot per kick (scored / missed / to come) and the score. */
+  setScoreboard(shootout: Shootout, teams: Record<Side, Team>): void {
+    // Five slots each in regulation; sudden death adds one per round.
+    const slots = Math.max(SHOOTOUT_KICKS, shootout.kicks.player.length, shootout.kicks.cpu.length);
+    const winner = shootout.winner;
+    const rows = (['player', 'cpu'] as const).flatMap((side) => {
+      const team = div('sb-team');
+      if (!winner && shootout.next === side) team.classList.add('up');
+      const swatch = div('sb-swatch');
+      swatch.style.background = teams[side].colour;
+      team.append(swatch, teams[side].name);
+
+      const dots = div('sb-dots');
+      const kicks = shootout.kicks[side];
+      for (let i = 0; i < slots; i++) {
+        dots.append(div(i >= kicks.length ? 'sb-dot' : kicks[i] ? 'sb-dot scored' : 'sb-dot missed'));
+      }
+
+      const score = div('sb-score');
+      score.textContent = String(shootout.goals(side));
+      return [team, dots, score];
+    });
+    this.scoreboard.replaceChildren(...rows);
   }
 
   setKeeperLevel(level: string): void {
@@ -47,4 +71,10 @@ export class Hud {
   hideResult(): void {
     this.result.hidden = true;
   }
+}
+
+function div(className: string): HTMLDivElement {
+  const d = document.createElement('div');
+  d.className = className;
+  return d;
 }

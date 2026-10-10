@@ -7,10 +7,10 @@ import { PointerInput } from './input/pointer';
 import { Keeper } from './keeper/keeper';
 import { KeeperMesh } from './keeper/mesh';
 import { Kick } from './match/kick';
+import { Match } from './match/match';
 import { createPhysics } from './physics';
 import { createScene } from './scene';
 import { Reticle } from './shooting/aim';
-import { describeOutcome } from './shooting/outcome';
 import { overpower, scatterForPower } from './shooting/power';
 import { Hud } from './ui/hud';
 
@@ -26,32 +26,13 @@ const input = new PointerInput(canvas);
 const reticle = new Reticle();
 scene.add(reticle.object);
 
-const HINT = 'Aim with the mouse · hold to power up · release to shoot';
-let goals = 0;
-let shots = 0;
-
-const kick = new Kick(ball, input, camera, {
-  onShot: (shot) => {
-    hud.setStatus('');
-    keeper.react(shot);
-  },
-  onResult: (outcome, launchSpeed) => {
-    shots++;
-    if (outcome.kind === 'goal') goals++;
-    hud.setTally(goals, shots);
-    hud.showResult(describeOutcome(outcome), `${Math.round(launchSpeed * 3.6)} km/h`, outcome.kind === 'goal');
-  },
-  onNextKick: () => {
-    hud.hideResult();
-    hud.setStatus(HINT);
-    keeper.reset();
-  },
-});
+const kick = new Kick(ball, input, camera);
+const match = new Match(kick, keeper, keeperMesh, input, hud);
 
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
 
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyR') kick.reset();
+  if (e.code === 'KeyR') match.restart();
   const level = LEVEL_KEYS[e.code];
   if (level) {
     keeper.level = level;
@@ -67,7 +48,7 @@ function fixedStep(): void {
     const tag = tags.get(h1) ?? tags.get(h2);
     if (tag) kick.onBallContact(tag);
   });
-  kick.step(PHYSICS_STEP);
+  match.step(PHYSICS_STEP);
 }
 
 function render(): void {
@@ -100,7 +81,5 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
-hud.setTally(goals, shots);
 hud.setKeeperLevel(keeper.level);
-hud.setStatus(HINT);
 requestAnimationFrame(frame);

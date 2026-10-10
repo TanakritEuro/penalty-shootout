@@ -8,8 +8,7 @@ import {
 } from '../constants';
 import { armLocal, type Keeper } from './keeper';
 
-// Invented kit: fluorescent orange shirt, black shorts, white gloves.
-const SHIRT = 0xff7a1a;
+// Placeholder kit: the shirt colour is set per team (see match/teams.ts).
 const SHORTS = 0x1b1b1f;
 const SKIN = 0xc98e62;
 const GLOVES = 0xf2f2f2;
@@ -18,11 +17,11 @@ const GLOVES = 0xf2f2f2;
 export class KeeperMesh {
   readonly object = new THREE.Group();
   private readonly arms: THREE.Group[] = [];
+  private readonly shirt = material(0xffffff);
 
   constructor(private readonly keeper: Keeper) {
-    const mat = (color: number) => new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
-    const part = (geometry: THREE.BufferGeometry, color: number, y: number) => {
-      const mesh = new THREE.Mesh(geometry, mat(color));
+    const part = (geometry: THREE.BufferGeometry, mat: THREE.Material, y: number) => {
+      const mesh = new THREE.Mesh(geometry, mat);
       mesh.position.y = y;
       mesh.castShadow = true;
       this.object.add(mesh);
@@ -30,21 +29,21 @@ export class KeeperMesh {
     };
 
     const legLength = 0.9;
-    part(new THREE.CapsuleGeometry(KEEPER_RADIUS * 0.9, legLength - KEEPER_RADIUS * 1.8, 6, 12), SHORTS, legLength / 2);
+    part(new THREE.CapsuleGeometry(KEEPER_RADIUS * 0.9, legLength - KEEPER_RADIUS * 1.8, 6, 12), material(SHORTS), legLength / 2);
     const torsoLength = 0.72;
     const torsoBase = legLength - 0.05;
-    part(new THREE.CapsuleGeometry(KEEPER_RADIUS, torsoLength - KEEPER_RADIUS * 2, 6, 12), SHIRT, torsoBase + torsoLength / 2);
+    part(new THREE.CapsuleGeometry(KEEPER_RADIUS, torsoLength - KEEPER_RADIUS * 2, 6, 12), this.shirt, torsoBase + torsoLength / 2);
     const headRadius = 0.12;
-    part(new THREE.SphereGeometry(headRadius, 16, 12), SKIN, KEEPER_HEIGHT - headRadius);
+    part(new THREE.SphereGeometry(headRadius, 16, 12), material(SKIN), KEEPER_HEIGHT - headRadius);
 
     // Each arm is a group pivoting at the arm's centre; a glove sits at the far end.
     const sleeve = new THREE.CapsuleGeometry(0.06, KEEPER_ARM_LENGTH - 0.12 - KEEPER_HAND_RADIUS * 2, 4, 8);
     const glove = new THREE.SphereGeometry(KEEPER_HAND_RADIUS, 12, 10);
     for (let i = 0; i < 2; i++) {
       const arm = new THREE.Group();
-      const s = new THREE.Mesh(sleeve, mat(SHIRT));
+      const s = new THREE.Mesh(sleeve, this.shirt);
       s.position.y = -KEEPER_HAND_RADIUS;
-      const g = new THREE.Mesh(glove, mat(GLOVES));
+      const g = new THREE.Mesh(glove, material(GLOVES));
       g.position.y = KEEPER_ARM_LENGTH / 2 - KEEPER_HAND_RADIUS;
       s.castShadow = g.castShadow = true;
       arm.add(s, g);
@@ -52,6 +51,10 @@ export class KeeperMesh {
       this.object.add(arm);
     }
     this.object.position.z = KEEPER_LINE_OFFSET;
+  }
+
+  setShirt(colour: number): void {
+    this.shirt.color.setHex(colour);
   }
 
   update(): void {
@@ -68,4 +71,8 @@ export class KeeperMesh {
       arm.rotation.z = -side * angle;
     });
   }
+}
+
+function material(color: number): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
 }

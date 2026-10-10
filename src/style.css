@@ -138,3 +138,71 @@ body {
   font-weight: 500;
   opacity: 0.8;
 }
+
+#scoreboard {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(10, 20, 14, 0.55);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.sb-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+.sb-team.up {
+  opacity: 1;
+}
+
+/* Small arrow marking the side taking the next kick. */
+.sb-team.up::before {
+  content: '▶';
+  font-size: 10px;
+}
+
+.sb-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.sb-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.sb-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+.sb-dot.scored {
+  border-color: #4cd964;
+  background: #4cd964;
+}
+
+.sb-dot.missed {
+  border-color: #ff3b30;
+  background: #ff3b30;
+}
+
+.sb-score {
+  min-width: 1.2em;
+  text-align: right;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
