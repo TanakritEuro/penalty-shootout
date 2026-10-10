@@ -6,6 +6,12 @@ export interface Vec3 {
   z: number;
 }
 
+export interface Launch {
+  velocity: Vec3;
+  /** Seconds until the ball reaches the target. */
+  flightTime: number;
+}
+
 /**
  * Launch velocity that carries the ball from `from` to `target` with an average
  * horizontal speed of `speed` m/s, under gravity and the ball's linear damping.
@@ -15,7 +21,7 @@ export interface Vec3 {
  *   y(t) = y0 + (g/c)·t + (v0 − g/c)·(1 − e^(−ct)) / c
  * so both components can be solved exactly for a chosen flight time.
  */
-export function solveLaunch(from: Vec3, target: Vec3, speed: number): Vec3 {
+export function solveLaunch(from: Vec3, target: Vec3, speed: number): Launch {
   const dx = target.x - from.x;
   const dz = target.z - from.z;
   const dy = target.y - from.y;
@@ -35,5 +41,8 @@ export function solveLaunch(from: Vec3, target: Vec3, speed: number): Vec3 {
     vy = (dy - (g / c) * time) * k + g / c;
   }
 
-  return { x: (dx / distance) * horizontal, y: vy, z: (dz / distance) * horizontal };
+  return {
+    velocity: { x: (dx / distance) * horizontal, y: vy, z: (dz / distance) * horizontal },
+    flightTime: time,
+  };
 }

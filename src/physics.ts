@@ -11,15 +11,15 @@ import {
   POST_RADIUS,
 } from './constants';
 
-/** What a static collider is, so contacts with the ball can be classified. */
-export type ColliderTag = 'ground' | 'post' | 'bar' | 'net';
+/** What a collider is, so contacts with the ball can be classified. */
+export type ColliderTag = 'ground' | 'post' | 'bar' | 'net' | 'keeper';
 
 export interface Physics {
   world: RAPIER.World;
   ball: RAPIER.RigidBody;
   /** Pass to `world.step()`; drained each step for the ball's contacts. */
   events: RAPIER.EventQueue;
-  /** Collider handle → tag, for every static collider. */
+  /** Collider handle → tag, for every collider the ball can hit. The keeper adds its own. */
   tags: Map<number, ColliderTag>;
 }
 

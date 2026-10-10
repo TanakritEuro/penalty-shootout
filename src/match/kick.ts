@@ -16,8 +16,17 @@ export type KickState =
   | { kind: 'result'; outcome: ShotOutcome; launchSpeed: number; elapsed: number }
   | { kind: 'nextKick' };
 
+/** A struck shot, as the keeper (and anything else watching) sees it. */
+export interface Shot {
+  /** Where the ball will cross the goal line, after any overpower error. */
+  target: { x: number; y: number };
+  /** Seconds until it gets there. */
+  flightTime: number;
+  launchSpeed: number;
+}
+
 export interface KickEvents {
-  onShot?: (launchSpeed: number) => void;
+  onShot?: (shot: Shot) => void;
   onResult?: (outcome: ShotOutcome, launchSpeed: number) => void;
   onNextKick?: () => void;
 }
@@ -105,11 +114,15 @@ export class Kick {
 
   private shoot(power: number): void {
     const target = applyShotError(this.aim, power);
-    const v = solveLaunch(this.ball.translation(), { x: target.x, y: target.y, z: 0 }, speedForPower(power));
+    const { velocity: v, flightTime } = solveLaunch(
+      this.ball.translation(),
+      { x: target.x, y: target.y, z: 0 },
+      speedForPower(power),
+    );
     this.ball.setLinvel(v, true);
     const launchSpeed = Math.hypot(v.x, v.y, v.z);
     this.state = { kind: 'ballInFlight', tracker: new ShotTracker(), launchSpeed };
-    this.events.onShot?.(launchSpeed);
+    this.events.onShot?.({ target, flightTime, launchSpeed });
   }
 
   private placeBall(): void {
