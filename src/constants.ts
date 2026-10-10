@@ -20,3 +20,14 @@ export const GRAVITY = -9.81;
 export const PHYSICS_STEP = 1 / 60;
 /** Rapier linear damping on the ball: crude air drag until Milestone 5 adds a real model. */
 export const BALL_LINEAR_DAMPING = 0.05;
+
+// Keeper body (a simple capsule person). Local frame: origin at the feet, +Y up the body.
+export const KEEPER_HEIGHT = 1.9; // feet to top of head
+export const KEEPER_RADIUS = 0.2; // half the body's width
+export const KEEPER_SHOULDER_HEIGHT = 1.52;
+export const KEEPER_SHOULDER_HALF_WIDTH = 0.17; // body centreline to shoulder joint
+export const KEEPER_ARM_LENGTH = 0.68; // shoulder to fingertips
+export const KEEPER_HAND_RADIUS = 0.09; // gloves
+export const KEEPER_COM_HEIGHT = 1.0; // centre of mass, measured up the body
+/** The keeper stands this far in front of the goal line (m). */
+export const KEEPER_LINE_OFFSET = 0.3;

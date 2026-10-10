@@ -1,5 +1,6 @@
 import { TUNING } from '../config';
 import { BALL_RADIUS } from '../constants';
+import { gaussian } from '../random';
 
 const T = TUNING.shooting;
 
@@ -37,10 +38,4 @@ export function applyShotError(aim: { x: number; y: number }, power: number): { 
     x: aim.x + side * over * T.overpowerWideDrift * (0.5 + 0.5 * Math.random()) + gaussian() * scatter,
     y: Math.max(BALL_RADIUS, aim.y + over * T.overpowerHighDrift * (0.6 + 0.4 * Math.random()) + gaussian() * scatter),
   };
-}
-
-/** Standard normal sample (Box–Muller). */
-function gaussian(): number {
-  const u = 1 - Math.random(); // (0, 1], keeps log() finite
-  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random());
 }

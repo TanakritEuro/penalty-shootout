@@ -1,8 +1,11 @@
 // Entry point: builds the scene and physics, then runs the game loop.
 // Physics and game logic run on a fixed step; rendering runs once per animation frame.
 
+import type { KeeperLevelName } from './config';
 import { PHYSICS_STEP } from './constants';
 import { PointerInput } from './input/pointer';
+import { Keeper } from './keeper/keeper';
+import { KeeperMesh } from './keeper/mesh';
 import { Kick } from './match/kick';
 import { createPhysics } from './physics';
 import { createScene } from './scene';
@@ -15,6 +18,9 @@ const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 
 const { renderer, scene, camera, ball: ballMesh } = createScene(canvas);
 const { world, ball, events, tags } = await createPhysics();
+const keeper = new Keeper(world, tags);
+const keeperMesh = new KeeperMesh(keeper);
+scene.add(keeperMesh.object);
 const hud = new Hud();
 const input = new PointerInput(canvas);
 const reticle = new Reticle();
@@ -25,7 +31,10 @@ let goals = 0;
 let shots = 0;
 
 const kick = new Kick(ball, input, camera, {
-  onShot: () => hud.setStatus(''),
+  onShot: (shot) => {
+    hud.setStatus('');
+    keeper.react(shot);
+  },
   onResult: (outcome, launchSpeed) => {
     shots++;
     if (outcome.kind === 'goal') goals++;
@@ -35,14 +44,23 @@ const kick = new Kick(ball, input, camera, {
   onNextKick: () => {
     hud.hideResult();
     hud.setStatus(HINT);
+    keeper.reset();
   },
 });
 
+const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
+
 window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyR') kick.reset();
+  const level = LEVEL_KEYS[e.code];
+  if (level) {
+    keeper.level = level;
+    hud.setKeeperLevel(level);
+  }
 });
 
 function fixedStep(): void {
+  keeper.step(PHYSICS_STEP);
   world.step(events);
   events.drainCollisionEvents((h1, h2, started) => {
     if (!started) return;
@@ -57,6 +75,7 @@ function render(): void {
   const r = ball.rotation();
   ballMesh.position.set(p.x, p.y, p.z);
   ballMesh.quaternion.set(r.x, r.y, r.z, r.w);
+  keeperMesh.update();
 
   const state = kick.state.kind;
   const power = state === 'charging' ? kick.power : null;
@@ -82,5 +101,6 @@ function frame(now: number): void {
 }
 
 hud.setTally(goals, shots);
+hud.setKeeperLevel(keeper.level);
 hud.setStatus(HINT);
 requestAnimationFrame(frame);

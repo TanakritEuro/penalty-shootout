@@ -6,6 +6,7 @@ const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as
 export class Hud {
   private readonly status = el<HTMLDivElement>('status');
   private readonly tally = el<HTMLDivElement>('tally');
+  private readonly level = el<HTMLDivElement>('level');
   private readonly result = el<HTMLDivElement>('result');
   private readonly resultTitle = el<HTMLDivElement>('result-title');
   private readonly resultDetail = el<HTMLDivElement>('result-detail');
@@ -22,6 +23,10 @@ export class Hud {
 
   setTally(goals: number, shots: number): void {
     this.tally.textContent = `Goals ${goals} / ${shots}`;
+  }
+
+  setKeeperLevel(level: string): void {
+    this.level.textContent = `Keeper: ${level[0].toUpperCase()}${level.slice(1)} · 1 / 2 / 3 to change`;
   }
 
   /** Show the meter at `power` (0–1), or hide it with null. */

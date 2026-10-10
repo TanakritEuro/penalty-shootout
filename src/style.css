@@ -36,7 +36,8 @@ body {
   font-weight: 600;
 }
 
-#tally {
+#corner {
+  text-align: right;
   position: absolute;
   top: 16px;
   right: 20px;
@@ -128,5 +129,12 @@ body {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2em;
+  opacity: 0.8;
+}
+
+#level {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
   opacity: 0.8;
 }

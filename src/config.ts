@@ -1,6 +1,8 @@
 // Gameplay tuning values. Everything you might want to tweak while playtesting lives
 // here, so feel can be adjusted without hunting through the code.
 
+export type KeeperLevelName = 'easy' | 'normal' | 'hard';
+
 export const TUNING = {
   shooting: {
     /** Seconds of holding the mouse button to go from zero to full power. */
@@ -30,6 +32,43 @@ export const TUNING = {
     marginHigh: 1.2,
     /** Reticle radius (m) when the shot is accurate. It grows with overpower scatter. */
     reticleRadius: 0.22,
+  },
+  keeper: {
+    /** Starting difficulty; keys 1 / 2 / 3 switch level during play. */
+    level: 'normal' as KeeperLevelName,
+    levels: {
+      easy: {
+        /** Seconds after the kick before the keeper moves. */
+        reactionTime: 0.2,
+        /** Chance (0–1) the keeper reads the shot instead of guessing. */
+        readChance: 0.3,
+        /** How far off (m, standard deviation) a read keeper's target is. */
+        readError: 0.6,
+        /** Seconds for a full dive, launch to full stretch. */
+        diveTime: 0.62,
+        /** How far the keeper's centre of mass can travel in a dive (m): their reach. */
+        maxDive: 1.8,
+      },
+      normal: { reactionTime: 0.1, readChance: 0.45, readError: 0.4, diveTime: 0.5, maxDive: 2.05 },
+      hard: { reactionTime: 0.06, readChance: 0.6, readError: 0.25, diveTime: 0.45, maxDive: 2.2 },
+    },
+    /**
+     * Extra read chance for slow shots: added in full once the ball takes this many
+     * seconds longer than a typical penalty (~0.45 s) to arrive.
+     */
+    slowShotReadBonus: 0.5,
+    slowShotExtraTime: 0.3,
+    /** When guessing, chance the keeper stays in the middle instead of picking a side. */
+    guessCentreChance: 0.2,
+    /** Targets within this distance of the centre (m) are covered standing or jumping. */
+    centreBand: 0.55,
+    /** Highest the keeper can jump off the ground (m). */
+    maxJump: 0.45,
+    /** Seconds to drop to the ground after a dive. */
+    landTime: 0.35,
+    /** Side-to-side shuffle on the line while waiting (m, cycles per second). */
+    swayAmplitude: 0.12,
+    swayFrequency: 0.6,
   },
   camera: {
     /** Vertical field of view (degrees). Narrower makes the goal bigger but crops the ball. */
