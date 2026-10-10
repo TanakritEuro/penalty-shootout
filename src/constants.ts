@@ -31,3 +31,6 @@ export const KEEPER_HAND_RADIUS = 0.09; // gloves
 export const KEEPER_COM_HEIGHT = 1.0; // centre of mass, measured up the body
 /** The keeper stands this far in front of the goal line (m). */
 export const KEEPER_LINE_OFFSET = 0.3;
+
+/** Kicks each side takes before sudden death. */
+export const SHOOTOUT_KICKS = 5;
