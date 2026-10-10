@@ -31,6 +31,15 @@ export const TUNING = {
     /** Reticle radius (m) when the shot is accurate. It grows with overpower scatter. */
     reticleRadius: 0.22,
   },
+  camera: {
+    /** Vertical field of view (degrees). Narrower makes the goal bigger but crops the ball. */
+    fov: 34,
+    /** Height (m) and distance behind the penalty spot (m). */
+    height: 1.1,
+    behindSpot: 4.0,
+    /** Height (m) of the point on the goal line the camera looks at. */
+    lookAtHeight: 0.3,
+  },
   outcome: {
     /** Give up waiting and call it a miss after this many seconds of flight. */
     maxFlightTime: 4.0,

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { TUNING } from './config';
 import {
   BALL_RADIUS,
   GOAL_DEPTH,
@@ -31,10 +32,11 @@ export function createScene(canvas: HTMLCanvasElement): GameScene {
   scene.background = new THREE.Color(0x87b5e0);
   scene.fog = new THREE.Fog(0x87b5e0, 60, 140);
 
-  // Broadcast-style camera behind the kicker, looking at the goal.
-  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 300);
-  camera.position.set(0, 1.9, PENALTY_SPOT_Z + 5.5);
-  camera.lookAt(0, 1.0, 0);
+  // Low camera just behind the kicker: the goal fills the view, the ball stays in shot below it.
+  const cam = TUNING.camera;
+  const camera = new THREE.PerspectiveCamera(cam.fov, window.innerWidth / window.innerHeight, 0.1, 300);
+  camera.position.set(0, cam.height, PENALTY_SPOT_Z + cam.behindSpot);
+  camera.lookAt(0, cam.lookAtHeight, 0);
 
   addLights(scene);
   scene.add(createPitch());
