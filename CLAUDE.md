@@ -24,7 +24,11 @@ detection from the ball's position plus Rapier contact events.
 Milestone 2 (keeper) is in: a kinematic capsule keeper that reads or guesses the shot,
 dives after a reaction delay with limited reach, and parries the ball through physics.
 Easy / normal / hard levels live in `TUNING.keeper`; keys 1/2/3 switch level in game.
-Each kick is still the player shooting; the shootout rules come in Milestone 3.
+
+Milestone 3 (shootout) is in: `match/shootout.ts` holds the scoring rules (five each,
+early finish, sudden death), `match/match.ts` the Intro → Kicking → Finished flow, and
+the HUD shows a kick-by-kick scoreboard. The CPU side's kicks are taken by a simple CPU
+kicker (`shooting/cpuKicker.ts`) against the AI keeper; Milestone 4 puts the player in goal.
 
 ## Layout
 
@@ -34,14 +38,14 @@ Each kick is still the player shooting; the shootout rules come in Milestone 3.
 - `src/config.ts` — `TUNING`: every gameplay knob (power, overpower drift, aim margins, camera, result timing).
 - `src/main.ts` — entry point, fixed-step loop, feeds physics contacts to the kick.
 - `src/input/` — pointer input, latched for the fixed step.
-- `src/shooting/` — aim and reticle, power model, launch solver, outcome tracker.
-- `src/match/kick.ts` — one kick's state machine.
+- `src/shooting/` — aim and reticle, power model, launch solver, outcome tracker, CPU kicker.
+- `src/match/` — `kick.ts` (one penalty's state machine, player or CPU), `shootout.ts` (scoring
+  rules), `match.ts` (whole-shootout flow), `teams.ts` (invented teams and colours).
 - `src/keeper/` — keeper body and state machine (`keeper.ts`), dive decision (`brain.ts`),
   pose maths and reach limit (`pose.ts`), placeholder mesh (`mesh.ts`).
-- `src/ui/hud.ts` — DOM HUD (power meter, result banner, tally, keeper level).
+- `src/ui/hud.ts` — DOM HUD (power meter, result banner, scoreboard, keeper level).
 
-As the game grows, add modules such as `camera/` and `audio/`, and put the shootout
-rules in `match/`.
+As the game grows, add modules such as `camera/` and `audio/`.
 
 ## Conventions
 
