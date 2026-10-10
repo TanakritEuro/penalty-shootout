@@ -5,7 +5,7 @@ import { BALL_RADIUS, PENALTY_SPOT_Z } from '../constants';
 import type { PointerInput } from '../input/pointer';
 import type { ColliderTag } from '../physics';
 import { aimFromPointer } from '../shooting/aim';
-import { chooseCpuShot, type CpuShot } from '../shooting/cpuKicker';
+import { chooseCpuShot, counterKeeper, type CpuShot } from '../shooting/cpuKicker';
 import { ShotTracker, type ShotOutcome } from '../shooting/outcome';
 import { applyShotError, powerFromCharge, speedForPower } from '../shooting/power';
 import { solveLaunch } from '../shooting/trajectory';
@@ -59,6 +59,24 @@ export class Kick {
   /** Power (0–1) currently on the meter, or null outside the charging state. */
   get power(): number | null {
     return this.state.kind === 'charging' ? powerFromCharge(this.state.elapsed) : null;
+  }
+
+  /** CPU run-up progress (0–1) until the ball is struck, or null outside the run-up. */
+  get runUp(): number | null {
+    return this.state.kind === 'cpuRunUp' ? Math.min(1, this.state.elapsed / TUNING.cpuKicker.runUpTime) : null;
+  }
+
+  /**
+   * The player's keeper has committed to a dive towards `keeperX`. If that happens well
+   * before the CPU strikes the ball, the kicker sees it and goes the other way.
+   * Returns true if the kicker changed the shot.
+   */
+  keeperCommitted(keeperX: number): boolean {
+    const s = this.state;
+    if (s.kind !== 'cpuRunUp') return false;
+    if (TUNING.cpuKicker.runUpTime - s.elapsed <= TUNING.playerKeeper.earlyCommitWindow) return false;
+    s.shot = counterKeeper(s.shot, keeperX);
+    return true;
   }
 
   /** Set the ball on the spot and hand the kick to `shooter`. */

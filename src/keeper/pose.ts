@@ -23,8 +23,11 @@ export interface KeeperPose {
 
 /** Ready stance: arms out and low, covering the area around the body. */
 export const ARMS_SET = 2.3;
-/** Arms stretched overhead, along the body, for a dive or a jump. */
-export const ARMS_UP = 0.12;
+/**
+ * Arms stretched overhead for a dive or a jump, angled slightly inwards so the gloves
+ * meet: with the arms parallel the gap between them is wider than the ball.
+ */
+export const ARMS_UP = -0.13;
 
 /** How far up the body (m, from the feet) the gloves reach with the arms overhead. */
 const GLOVE_REACH = KEEPER_SHOULDER_HEIGHT + KEEPER_ARM_LENGTH - KEEPER_HAND_RADIUS;

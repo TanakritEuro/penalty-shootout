@@ -15,9 +15,11 @@ export class Hud {
   private readonly resultDetail = el<HTMLDivElement>('result-detail');
   private readonly power = el<HTMLDivElement>('power');
   private readonly powerFill = el<HTMLDivElement>('power-fill');
+  private readonly powerLabel = el<HTMLDivElement>('power-label');
+  private readonly powerDanger = el<HTMLDivElement>('power-danger');
 
   constructor() {
-    el<HTMLDivElement>('power-danger').style.width = `${(1 - TUNING.shooting.overpowerThreshold) * 100}%`;
+    this.powerDanger.style.width = `${(1 - TUNING.shooting.overpowerThreshold) * 100}%`;
   }
 
   setStatus(text: string): void {
@@ -50,20 +52,34 @@ export class Hud {
   }
 
   setKeeperLevel(level: string): void {
-    this.level.textContent = `Keeper: ${level[0].toUpperCase()}${level.slice(1)} · 1 / 2 / 3 to change`;
+    this.level.textContent = `CPU keeper: ${level[0].toUpperCase()}${level.slice(1)} · 1 / 2 / 3 to change`;
   }
 
   /** Show the meter at `power` (0–1), or hide it with null. */
+  /** Show the power meter at `power` (0–1), or hide it with null. */
   setPower(power: number | null): void {
-    this.power.classList.toggle('hidden', power === null);
-    if (power === null) return;
-    this.powerFill.style.width = `${power * 100}%`;
-    this.powerFill.classList.toggle('over', power > TUNING.shooting.overpowerThreshold);
+    this.showMeter(power, 'POWER', true);
+    if (power !== null) this.powerFill.classList.toggle('over', power > TUNING.shooting.overpowerThreshold);
   }
 
-  showResult(title: string, detail: string, isGoal: boolean): void {
+  /** Reuse the meter as the CPU's run-up: when it fills, the ball is struck. Null hides it. */
+  setRunUp(progress: number | null): void {
+    this.showMeter(progress, 'KICK', false);
+    this.powerFill.classList.remove('over');
+  }
+
+  private showMeter(value: number | null, label: string, showDanger: boolean): void {
+    this.power.classList.toggle('hidden', value === null);
+    if (value === null) return;
+    this.powerLabel.textContent = label;
+    this.powerDanger.hidden = !showDanger;
+    this.powerFill.style.width = `${value * 100}%`;
+  }
+
+  /** `good`: news the player wants (their goal, their save), shown in gold. */
+  showResult(title: string, detail: string, good: boolean): void {
     this.resultTitle.textContent = title;
-    this.resultTitle.classList.toggle('goal', isGoal);
+    this.resultTitle.classList.toggle('good', good);
     this.resultDetail.textContent = detail;
     this.result.hidden = false;
   }

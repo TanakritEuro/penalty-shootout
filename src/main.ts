@@ -3,6 +3,7 @@
 
 import type { KeeperLevelName } from './config';
 import { PHYSICS_STEP } from './constants';
+import { KeeperKeys } from './input/keeperKeys';
 import { PointerInput } from './input/pointer';
 import { Keeper } from './keeper/keeper';
 import { KeeperMesh } from './keeper/mesh';
@@ -27,7 +28,7 @@ const reticle = new Reticle();
 scene.add(reticle.object);
 
 const kick = new Kick(ball, input, camera);
-const match = new Match(kick, keeper, keeperMesh, input, hud);
+const match = new Match(kick, keeper, keeperMesh, input, new KeeperKeys(), camera, hud);
 
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
 
@@ -60,9 +61,12 @@ function render(): void {
 
   const state = kick.state.kind;
   const power = state === 'charging' ? kick.power : null;
-  reticle.visible = state === 'aiming' || state === 'charging';
-  reticle.update(kick.aim, scatterForPower(power ?? 0), overpower(power ?? 0));
-  hud.setPower(state === 'aiming' ? 0 : power);
+  reticle.keeperMode = match.keeperAiming;
+  reticle.visible = state === 'aiming' || state === 'charging' || match.keeperAiming;
+  if (match.keeperAiming) reticle.update(match.keeperAim, 0, 0);
+  else reticle.update(kick.aim, scatterForPower(power ?? 0), overpower(power ?? 0));
+  if (kick.runUp !== null) hud.setRunUp(kick.runUp);
+  else hud.setPower(state === 'aiming' ? 0 : power);
 
   renderer.render(scene, camera);
 }

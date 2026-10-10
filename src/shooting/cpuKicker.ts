@@ -20,3 +20,11 @@ export function chooseCpuShot(): CpuShot {
     power: between(C.minPower, C.maxPower),
   };
 }
+
+/** The keeper went early to `keeperX`: put the ball in the other side of the goal. */
+export function counterKeeper(shot: CpuShot, keeperX: number): CpuShot {
+  const C = TUNING.cpuKicker;
+  const side = Math.abs(keeperX) > 0.3 ? -Math.sign(keeperX) : Math.random() < 0.5 ? -1 : 1;
+  const x = side * (C.minSideX + Math.random() * (C.maxSideX - C.minSideX));
+  return { aim: { x, y: shot.aim.y }, power: shot.power };
+}

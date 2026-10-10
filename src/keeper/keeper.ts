@@ -32,6 +32,8 @@ function leanQuat(angle: number): RAPIER.Rotation {
  */
 export class Keeper {
   level: KeeperLevelName = TUNING.keeper.level;
+  /** When true the player dives with `playerDive`; otherwise the AI decides in `react`. */
+  controlledByPlayer = false;
   pose: KeeperPose = standingPose();
   /** The last dive plan, for debugging. */
   lastPlan: DivePlan | null = null;
@@ -40,6 +42,9 @@ export class Keeper {
   private readonly arms: RAPIER.Collider[] = [];
   private state: KeeperState = { kind: 'ready' };
   private clock = 0;
+  /** Player's keeper: the dive target awaiting assist, and where the shot is going. */
+  private command: { x: number; y: number } | null = null;
+  private incoming: { x: number; y: number } | null = null;
 
   constructor(world: RAPIER.World, tags: Map<number, ColliderTag>) {
     this.body = world.createRigidBody(
@@ -69,16 +74,56 @@ export class Keeper {
     this.applyPose(true);
   }
 
-  /** The kick has been taken: decide where to go. */
+  /** The kick has been taken: an AI keeper decides where to go. A player's keeper ignores this. */
   react(shot: Shot): void {
+    if (this.controlledByPlayer) {
+      this.incoming = shot.target;
+      this.assistDive();
+      return;
+    }
     const plan = planDive(shot, this.level);
     this.lastPlan = plan;
     this.state = { kind: 'waiting', plan, elapsed: 0 };
   }
 
+  /** True until the keeper has committed to a dive for this kick. */
+  get ready(): boolean {
+    return this.state.kind === 'ready';
+  }
+
+  /** The player dives towards (x, y) on the goal line, right now. Only once per kick. */
+  /**
+   * The player dives towards (x, y) on the goal line, right now. Only once per kick.
+   * If the ball comes near where they went, they adjust onto it (see `assistRadius`).
+   */
+  playerDive(x: number, y: number): boolean {
+    if (!this.controlledByPlayer || !this.ready) return false;
+    const P = TUNING.playerKeeper;
+    this.command = { x, y };
+    this.startDive(x, y, P.diveTime, P.maxDive);
+    this.assistDive();
+    return true;
+  }
+
+  /** Once both the player's dive and the shot are known, steer the dive onto a nearby ball. */
+  private assistDive(): void {
+    const s = this.state;
+    const ball = this.incoming;
+    if (!this.command || !ball || s.kind !== 'diving') return;
+    const P = TUNING.playerKeeper;
+    if (Math.hypot(ball.x - this.command.x, ball.y - this.command.y) < P.assistRadius) {
+      // Carry on from where the body is now, for whatever is left of the dive.
+      const remaining = Math.max(0.15, s.duration - s.elapsed);
+      this.state = { kind: 'diving', from: this.pose, to: diveTargetPose(this.pose, ball.x, ball.y, P.maxDive), duration: remaining, elapsed: 0 };
+    }
+    this.command = null;
+  }
+
   /** Back to the middle of the line for the next kick. */
   reset(): void {
     this.state = { kind: 'ready' };
+    this.command = null;
+    this.incoming = null;
     this.pose = standingPose();
     this.applyPose(true);
   }
@@ -98,13 +143,7 @@ export class Keeper {
         s.elapsed += dt;
         if (s.elapsed >= s.plan.delay) {
           const level = K.levels[this.level];
-          this.state = {
-            kind: 'diving',
-            from: this.pose,
-            to: diveTargetPose(this.pose, s.plan.x, s.plan.y, level.maxDive),
-            duration: level.diveTime,
-            elapsed: 0,
-          };
+          this.startDive(s.plan.x, s.plan.y, level.diveTime, level.maxDive);
         }
         break;
 
@@ -133,6 +172,10 @@ export class Keeper {
     }
 
     this.applyPose(false);
+  }
+
+  private startDive(x: number, y: number, duration: number, maxDive: number): void {
+    this.state = { kind: 'diving', from: this.pose, to: diveTargetPose(this.pose, x, y, maxDive), duration, elapsed: 0 };
   }
 
   /** Position the body and arm colliders for the current pose. */

@@ -24,6 +24,8 @@ export function aimFromPointer(ndc: THREE.Vector2, camera: THREE.Camera, out: TH
 
 const CALM = new THREE.Color(0xffffff);
 const WILD = new THREE.Color(0xff3b30);
+/** The player's dive target when they are in goal. */
+const KEEPER = new THREE.Color(0x7dff6b);
 
 /** Crosshair ring drawn on the goal line, always on top of the goal frame and net. */
 export class Reticle {
@@ -36,6 +38,8 @@ export class Reticle {
     depthWrite: false,
   });
   private readonly ring: THREE.Mesh;
+  /** Green while picking where to dive as keeper, white while shooting. */
+  keeperMode = false;
 
   constructor() {
     // Unit-radius ring, scaled to the current spread.
@@ -63,7 +67,7 @@ export class Reticle {
     this.object.position.x = aim.x;
     this.object.position.y = aim.y;
     this.ring.scale.setScalar(A.reticleRadius + spread * 2);
-    this.material.color.copy(CALM).lerp(WILD, wildness);
+    this.material.color.copy(this.keeperMode ? KEEPER : CALM).lerp(WILD, wildness);
   }
 
   set visible(v: boolean) {

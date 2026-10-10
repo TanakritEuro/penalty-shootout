@@ -89,6 +89,28 @@ export const TUNING = {
     swayAmplitude: 0.12,
     swayFrequency: 0.6,
   },
+  playerKeeper: {
+    /** Seconds for a full dive, and how far the centre of mass can travel (m): the player's reach. */
+    diveTime: 0.45,
+    maxDive: 2.4,
+    /** Arrow keys pressed within this many seconds of each other count as one diagonal dive. */
+    comboWindow: 0.07,
+    /** Where arrow-key dives aim on the goal line (m): sideways, and high / middle / low. */
+    arrowX: 3.0,
+    highY: 1.9,
+    midY: 1.0,
+    lowY: 0.3,
+    /**
+     * Diving more than this many seconds before the kick gives it away: the kicker sees
+     * you go and puts it the other way.
+     */
+    earlyCommitWindow: 0.2,
+    /**
+     * Keepers adjust their hands mid-dive: if the ball comes within this distance (m)
+     * of where the player dived, the keeper steers onto it.
+     */
+    assistRadius: 1.2,
+  },
   camera: {
     /** Vertical field of view (degrees). Narrower makes the goal bigger but crops the ball. */
     fov: 34,
