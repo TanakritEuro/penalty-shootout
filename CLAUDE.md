@@ -17,20 +17,24 @@ Requires Node 20.19+ or 22.12+ (Vite 8).
 
 ## Current state
 
-The scaffold renders the pitch, markings, goal frame, net and ball, with Rapier
-colliders for the ground, posts, crossbar and net. `src/main.ts` has a throwaway
-test shot (Space = random shot, R = reset) and a basic goal-line check. Replace the
-test shot with the real shooting mechanic in Milestone 1.
+Milestone 1 (shooting) is in: mouse aim with a reticle, hold-to-charge power with
+overpower drift, a kick state machine (`src/match/kick.ts`) and goal / woodwork / miss
+detection from the ball's position plus Rapier contact events. There is no keeper yet.
 
 ## Layout
 
 - `src/constants.ts` — real-world dimensions and physics constants. Use these, never magic numbers.
 - `src/scene.ts` — Three.js renderer, camera, lights, pitch, markings, goal visuals.
 - `src/physics.ts` — Rapier world and colliders.
-- `src/main.ts` — entry point and game loop.
+- `src/config.ts` — `TUNING`: every gameplay knob (power, overpower drift, aim margins, result timing).
+- `src/main.ts` — entry point, fixed-step loop, feeds physics contacts to the kick.
+- `src/input/` — pointer input, latched for the fixed step.
+- `src/shooting/` — aim and reticle, power model, launch solver, outcome tracker.
+- `src/match/kick.ts` — one kick's state machine.
+- `src/ui/hud.ts` — DOM HUD (power meter, result banner, tally).
 
-As the game grows, split into modules such as `input/`, `shooting/`, `keeper/`,
-`match/` (shootout rules and state machine), `camera/`, `ui/`, `audio/`.
+As the game grows, add modules such as `keeper/`, `camera/`, `audio/`, and put the
+shootout rules in `match/`.
 
 ## Conventions
 
