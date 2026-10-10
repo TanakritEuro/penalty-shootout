@@ -28,7 +28,14 @@ Easy / normal / hard levels live in `TUNING.keeper`; keys 1/2/3 switch level in 
 Milestone 3 (shootout) is in: `match/shootout.ts` holds the scoring rules (five each,
 early finish, sudden death), `match/match.ts` the Intro → Kicking → Finished flow, and
 the HUD shows a kick-by-kick scoreboard. The CPU side's kicks are taken by a simple CPU
-kicker (`shooting/cpuKicker.ts`) against the AI keeper; Milestone 4 puts the player in goal.
+kicker (`shooting/cpuKicker.ts`).
+
+Milestone 4 (player as keeper) is in: on the CPU's kicks the player keeps goal, diving
+with the arrow keys (`input/keeperKeys.ts`) or a click under a green reticle. The bottom
+meter shows the CPU's run-up; diving more than `earlyCommitWindow` before the strike makes
+the kicker go the other way. Dives steer onto a ball within `assistRadius`. Tuning is in
+`TUNING.playerKeeper`. There is nothing to read the kicker by yet, so saves are guesses
+until Milestone 6 adds a kicker with a run-up animation.
 
 ## Layout
 
@@ -37,7 +44,7 @@ kicker (`shooting/cpuKicker.ts`) against the AI keeper; Milestone 4 puts the pla
 - `src/physics.ts` — Rapier world and colliders.
 - `src/config.ts` — `TUNING`: every gameplay knob (power, overpower drift, aim margins, camera, result timing).
 - `src/main.ts` — entry point, fixed-step loop, feeds physics contacts to the kick.
-- `src/input/` — pointer input, latched for the fixed step.
+- `src/input/` — pointer input and keeper arrow keys, latched for the fixed step.
 - `src/shooting/` — aim and reticle, power model, launch solver, outcome tracker, CPU kicker.
 - `src/match/` — `kick.ts` (one penalty's state machine, player or CPU), `shootout.ts` (scoring
   rules), `match.ts` (whole-shootout flow), `teams.ts` (invented teams and colours).
