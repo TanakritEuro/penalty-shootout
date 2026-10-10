@@ -35,3 +35,98 @@ body {
   font-size: 18px;
   font-weight: 600;
 }
+
+#tally {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+#result {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  animation: pop 0.25s ease-out;
+}
+
+#result-title {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+#result-title.goal {
+  color: #ffe14d;
+}
+
+#result-detail {
+  margin-top: 4px;
+  font-size: 18px;
+  opacity: 0.85;
+}
+
+@keyframes pop {
+  from {
+    transform: translateX(-50%) scale(0.7);
+    opacity: 0;
+  }
+}
+
+#power {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, 80vw);
+  transition: opacity 0.2s;
+}
+
+#power.hidden {
+  opacity: 0;
+}
+
+#power-track {
+  position: relative;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+/* The overpower zone: past this point the shot drifts high and wide. */
+#power-danger {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: repeating-linear-gradient(-45deg, rgba(255, 59, 48, 0.35) 0 6px, rgba(255, 59, 48, 0.15) 6px 12px);
+}
+
+#power-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  background: linear-gradient(90deg, #4cd964, #ffcc00);
+}
+
+#power-fill.over {
+  background: linear-gradient(90deg, #4cd964, #ffcc00 60%, #ff3b30);
+}
+
+#power-label {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  opacity: 0.8;
+}

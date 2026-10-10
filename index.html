@@ -10,7 +10,19 @@
   <body>
     <canvas id="game"></canvas>
     <div id="hud">
+      <div id="tally"></div>
       <div id="status">Loading…</div>
+      <div id="result" hidden>
+        <div id="result-title"></div>
+        <div id="result-detail"></div>
+      </div>
+      <div id="power">
+        <div id="power-track">
+          <div id="power-danger"></div>
+          <div id="power-fill"></div>
+        </div>
+        <div id="power-label">POWER</div>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

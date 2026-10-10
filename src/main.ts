@@ -1,85 +1,86 @@
-// Scaffold entry point: renders the pitch and goal, and fires a random test shot
-// so you can confirm rendering + physics work. Replace the test-kick logic with the
-// real game (see CLAUDE.md, Milestone 1).
+// Entry point: builds the scene and physics, then runs the game loop.
+// Physics and game logic run on a fixed step; rendering runs once per animation frame.
 
-import { BALL_RADIUS, GOAL_HEIGHT, GOAL_WIDTH, GRAVITY, PENALTY_SPOT_Z, PHYSICS_STEP } from './constants';
+import { PHYSICS_STEP } from './constants';
+import { PointerInput } from './input/pointer';
+import { Kick } from './match/kick';
 import { createPhysics } from './physics';
 import { createScene } from './scene';
+import { Reticle } from './shooting/aim';
+import { describeOutcome } from './shooting/outcome';
+import { overpower, scatterForPower } from './shooting/power';
+import { Hud } from './ui/hud';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
-const status = document.querySelector<HTMLDivElement>('#status')!;
 
 const { renderer, scene, camera, ball: ballMesh } = createScene(canvas);
-const { world, ball } = await createPhysics();
+const { world, ball, events, tags } = await createPhysics();
+const hud = new Hud();
+const input = new PointerInput(canvas);
+const reticle = new Reticle();
+scene.add(reticle.object);
 
-let scored = false;
+const HINT = 'Aim with the mouse · hold to power up · release to shoot';
+let goals = 0;
+let shots = 0;
 
-function resetBall(): void {
-  ball.setTranslation({ x: 0, y: BALL_RADIUS, z: PENALTY_SPOT_Z }, true);
-  ball.setLinvel({ x: 0, y: 0, z: 0 }, true);
-  ball.setAngvel({ x: 0, y: 0, z: 0 }, true);
-  scored = false;
-  status.textContent = 'Space: test shot · R: reset';
-}
-
-/** Launch the ball so it arrives at (tx, ty) on the goal line at roughly `speed` m/s. */
-function testKick(): void {
-  const tx = (Math.random() - 0.5) * (GOAL_WIDTH + 1.5);
-  const ty = 0.3 + Math.random() * (GOAL_HEIGHT + 0.3);
-  const speed = 24;
-
-  const p = ball.translation();
-  const dx = tx - p.x;
-  const dz = 0 - p.z;
-  const horizontal = Math.hypot(dx, dz);
-  const time = horizontal / speed;
-  const vy = (ty - p.y - 0.5 * GRAVITY * time * time) / time;
-
-  ball.setLinvel({ x: (dx / horizontal) * speed, y: vy, z: (dz / horizontal) * speed }, true);
-  status.textContent = 'Shot!';
-}
-
-window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') {
-    resetBall();
-    testKick();
-  } else if (e.code === 'KeyR') {
-    resetBall();
-  }
+const kick = new Kick(ball, input, camera, {
+  onShot: () => hud.setStatus(''),
+  onResult: (outcome, launchSpeed) => {
+    shots++;
+    if (outcome.kind === 'goal') goals++;
+    hud.setTally(goals, shots);
+    hud.showResult(describeOutcome(outcome), `${Math.round(launchSpeed * 3.6)} km/h`, outcome.kind === 'goal');
+  },
+  onNextKick: () => {
+    hud.hideResult();
+    hud.setStatus(HINT);
+  },
 });
 
-function checkGoal(): void {
-  if (scored) return;
-  const p = ball.translation();
-  // Whole ball over the line, between the posts, under the bar.
-  if (p.z < -BALL_RADIUS && Math.abs(p.x) < GOAL_WIDTH / 2 && p.y < GOAL_HEIGHT) {
-    scored = true;
-    status.textContent = 'GOAL!';
-  }
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyR') kick.reset();
+});
+
+function fixedStep(): void {
+  world.step(events);
+  events.drainCollisionEvents((h1, h2, started) => {
+    if (!started) return;
+    const tag = tags.get(h1) ?? tags.get(h2);
+    if (tag) kick.onBallContact(tag);
+  });
+  kick.step(PHYSICS_STEP);
 }
 
-// Fixed-timestep physics, variable-rate rendering.
+function render(): void {
+  const p = ball.translation();
+  const r = ball.rotation();
+  ballMesh.position.set(p.x, p.y, p.z);
+  ballMesh.quaternion.set(r.x, r.y, r.z, r.w);
+
+  const state = kick.state.kind;
+  const power = state === 'charging' ? kick.power : null;
+  reticle.visible = state === 'aiming' || state === 'charging';
+  reticle.update(kick.aim, scatterForPower(power ?? 0), overpower(power ?? 0));
+  hud.setPower(state === 'aiming' ? 0 : power);
+
+  renderer.render(scene, camera);
+}
+
 let last = performance.now();
 let accumulator = 0;
 
 function frame(now: number): void {
   accumulator += Math.min((now - last) / 1000, 0.25);
   last = now;
-
   while (accumulator >= PHYSICS_STEP) {
-    world.step();
-    checkGoal();
+    fixedStep();
     accumulator -= PHYSICS_STEP;
   }
-
-  const p = ball.translation();
-  const r = ball.rotation();
-  ballMesh.position.set(p.x, p.y, p.z);
-  ballMesh.quaternion.set(r.x, r.y, r.z, r.w);
-
-  renderer.render(scene, camera);
+  render();
   requestAnimationFrame(frame);
 }
 
-resetBall();
+hud.setTally(goals, shots);
+hud.setStatus(HINT);
 requestAnimationFrame(frame);
