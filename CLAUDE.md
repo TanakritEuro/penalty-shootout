@@ -26,7 +26,7 @@ detection from the ball's position plus Rapier contact events. There is no keepe
 - `src/constants.ts` — real-world dimensions and physics constants. Use these, never magic numbers.
 - `src/scene.ts` — Three.js renderer, camera, lights, pitch, markings, goal visuals.
 - `src/physics.ts` — Rapier world and colliders.
-- `src/config.ts` — `TUNING`: every gameplay knob (power, overpower drift, aim margins, result timing).
+- `src/config.ts` — `TUNING`: every gameplay knob (power, overpower drift, aim margins, camera, result timing).
 - `src/main.ts` — entry point, fixed-step loop, feeds physics contacts to the kick.
 - `src/input/` — pointer input, latched for the fixed step.
 - `src/shooting/` — aim and reticle, power model, launch solver, outcome tracker.
