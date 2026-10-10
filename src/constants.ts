@@ -18,3 +18,5 @@ export const BALL_MASS = 0.43;
 
 export const GRAVITY = -9.81;
 export const PHYSICS_STEP = 1 / 60;
+/** Rapier linear damping on the ball: crude air drag until Milestone 5 adds a real model. */
+export const BALL_LINEAR_DAMPING = 0.05;
