@@ -19,7 +19,12 @@ Requires Node 20.19+ or 22.12+ (Vite 8).
 
 Milestone 1 (shooting) is in: mouse aim with a reticle, hold-to-charge power with
 overpower drift, a kick state machine (`src/match/kick.ts`) and goal / woodwork / miss
-detection from the ball's position plus Rapier contact events. There is no keeper yet.
+detection from the ball's position plus Rapier contact events.
+
+Milestone 2 (keeper) is in: a kinematic capsule keeper that reads or guesses the shot,
+dives after a reaction delay with limited reach, and parries the ball through physics.
+Easy / normal / hard levels live in `TUNING.keeper`; keys 1/2/3 switch level in game.
+Each kick is still the player shooting; the shootout rules come in Milestone 3.
 
 ## Layout
 
@@ -31,10 +36,12 @@ detection from the ball's position plus Rapier contact events. There is no keepe
 - `src/input/` — pointer input, latched for the fixed step.
 - `src/shooting/` — aim and reticle, power model, launch solver, outcome tracker.
 - `src/match/kick.ts` — one kick's state machine.
-- `src/ui/hud.ts` — DOM HUD (power meter, result banner, tally).
+- `src/keeper/` — keeper body and state machine (`keeper.ts`), dive decision (`brain.ts`),
+  pose maths and reach limit (`pose.ts`), placeholder mesh (`mesh.ts`).
+- `src/ui/hud.ts` — DOM HUD (power meter, result banner, tally, keeper level).
 
-As the game grows, add modules such as `keeper/`, `camera/`, `audio/`, and put the
-shootout rules in `match/`.
+As the game grows, add modules such as `camera/` and `audio/`, and put the shootout
+rules in `match/`.
 
 ## Conventions
 
