@@ -37,22 +37,33 @@ the kicker go the other way. Dives steer onto a ball within `assistRadius`. Tuni
 `TUNING.playerKeeper`. There is nothing to read the kicker by yet, so saves are guesses
 until Milestone 6 adds a kicker with a run-up animation.
 
+Milestone 5 (curve and feel) is in: quadratic drag and Magnus lift act on the ball every
+step (`shooting/aero.ts`). The launch solver (`shooting/trajectory.ts`) flies a ghost ball
+in a private Rapier world, so predictions match the real flight exactly; always predict
+through it rather than with closed-form maths. W / A / S / D set the contact point
+(`shooting/spin.ts`); the AI keeper reads the line the ball sets off on (`curveRead`).
+`camera/director.ts` cuts to a goal-line camera in slow motion on close calls, and
+`net.ts` ripples the net on impact.
+
 ## Layout
 
 - `src/constants.ts` — real-world dimensions and physics constants. Use these, never magic numbers.
-- `src/scene.ts` — Three.js renderer, camera, lights, pitch, markings, goal visuals.
+- `src/scene.ts` — Three.js renderer, camera, lights, pitch, markings, goal frame.
+- `src/net.ts` — goal net panels and their ripple.
 - `src/physics.ts` — Rapier world and colliders.
-- `src/config.ts` — `TUNING`: every gameplay knob (power, overpower drift, aim margins, camera, result timing).
+- `src/config.ts` — `TUNING`: every gameplay knob (power, spin, curve, keepers, camera, slow motion, net).
 - `src/main.ts` — entry point, fixed-step loop, feeds physics contacts to the kick.
-- `src/input/` — pointer input and keeper arrow keys, latched for the fixed step.
-- `src/shooting/` — aim and reticle, power model, launch solver, outcome tracker, CPU kicker.
+- `src/input/` — pointer input, keeper arrow keys and spin keys, latched for the fixed step.
+- `src/shooting/` — aim and reticle, power model, spin, aerodynamics, launch solver, outcome
+  tracker, CPU kicker.
 - `src/match/` — `kick.ts` (one penalty's state machine, player or CPU), `shootout.ts` (scoring
   rules), `match.ts` (whole-shootout flow), `teams.ts` (invented teams and colours).
 - `src/keeper/` — keeper body and state machine (`keeper.ts`), dive decision (`brain.ts`),
   pose maths and reach limit (`pose.ts`), placeholder mesh (`mesh.ts`).
-- `src/ui/hud.ts` — DOM HUD (power meter, result banner, scoreboard, keeper level).
+- `src/camera/director.ts` — close-call camera cuts and slow motion (scales game time).
+- `src/ui/hud.ts` — DOM HUD (power meter, spin widget, result banner, scoreboard, keeper level).
 
-As the game grows, add modules such as `camera/` and `audio/`.
+As the game grows, add modules such as `audio/`.
 
 ## Conventions
 

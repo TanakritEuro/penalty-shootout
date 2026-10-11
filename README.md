@@ -11,7 +11,10 @@ Open http://localhost:5173.
 
 **Controls:** move the mouse to aim, hold the left button to charge the power meter and
 release to shoot. Charging into the red zone overpowers the shot so it drifts high and
-wide. It's a best-of-five shootout against Copper Vale, then sudden death. Click to skip a
+wide. **W / A / S / D** move where you strike the ball (the dot in the little ball by the
+meter): hit it off-centre to curl it, at the cost of some pace and accuracy. Curling it away
+from the keeper fools them; bending it in towards them doesn't. It's a best-of-five
+shootout against Copper Vale, then sudden death. Click to skip a
 result, **R** to restart the shootout, **1 / 2 / 3** to set the
 CPU keeper to easy / normal / hard.
 
