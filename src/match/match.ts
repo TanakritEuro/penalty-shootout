@@ -8,7 +8,7 @@ import type { PointerInput } from '../input/pointer';
 import type { Keeper } from '../keeper/keeper';
 import type { KeeperMesh } from '../keeper/mesh';
 import { aimFromPointer } from '../shooting/aim';
-import { describeOutcome } from '../shooting/outcome';
+import { describeOutcome, type ShotOutcome } from '../shooting/outcome';
 import type { Hud } from '../ui/hud';
 import type { Kick } from './kick';
 import { otherSide, Shootout, type Side } from './shootout';
@@ -19,17 +19,44 @@ export type MatchState =
   | { kind: 'kicking' }
   | { kind: 'finished'; winner: Side; elapsed: number };
 
+export interface MatchSetup {
+  /** Both sides human on one keyboard: the shooter uses the mouse, the keeper the arrow keys. */
+  twoPlayer: boolean;
+  /** Banner before the first kick, e.g. the cup round. */
+  introTitle?: string;
+}
+
+export interface FinishBanner {
+  title: string;
+  detail: string;
+  good: boolean;
+}
+
+export interface MatchEvents {
+  /** Every penalty, as it is decided. */
+  onKick?: (shooter: Side, outcome: ShotOutcome) => void;
+  /** The shootout is over: what to show (defaults to a plain win/lose banner). */
+  onFinish?: (winner: Side, shootout: Shootout) => FinishBanner | void;
+  /** The player clicked on after the result (defaults to a rematch). */
+  onContinue?: () => void;
+}
+
 /**
  * A whole shootout: Intro → Kicking (one Kick per penalty, alternating sides) → Finished.
- * Owns the shootout score and drives the kick, keeper and HUD between penalties. On the
- * CPU's kicks the player keeps goal.
+ * Owns the shootout score and drives the kick, keeper and HUD between penalties.
+ *
+ * Against the CPU, the player shoots for `player` and keeps goal on the CPU's kicks. In
+ * two-player mode both sides are human: whoever is shooting has the mouse and whoever is
+ * in goal has the arrow keys.
  */
 export class Match {
   state: MatchState = { kind: 'intro', elapsed: 0 };
   shootout: Shootout;
-  /** Where the player's keeper would dive if they clicked now (on the CPU's kicks). */
+  events: MatchEvents = {};
+  /** Where a human keeper would dive if they clicked now (only when the CPU is shooting). */
   readonly keeperAim = new THREE.Vector2(0, 1);
-  /** The player dived early on this kick and the kicker went the other way. */
+  private setup: MatchSetup = { twoPlayer: false };
+  /** The player dived early on this kick and the CPU kicker went the other way. */
   private wentEarly = false;
 
   constructor(
@@ -50,24 +77,19 @@ export class Match {
         this.keeper.react(shot);
         this.director.onShot(shot);
       },
-      onResult: (outcome, launchSpeed) => {
-        const shooter = this.kick.shooter;
-        const scored = outcome.kind === 'goal';
-        let detail = `${TEAMS[shooter].name} · ${Math.round(launchSpeed * 3.6)} km/h`;
-        if (shooter === 'cpu' && scored && this.wentEarly) detail += ' · you went too early';
-        // Gold for whatever is good news for the player: their goals and their saves.
-        const good = shooter === 'player' ? scored : !scored;
-        this.hud.showResult(describeOutcome(outcome), detail, good);
-        // A home crowd: it cheers the player's goals and saves and groans at the rest.
-        this.sound.react(outcome.kind === 'woodwork' ? 'ooh' : good ? 'cheer' : 'groan');
-      },
+      onResult: (outcome, launchSpeed) => this.showResult(outcome, launchSpeed),
       onDone: (outcome) => this.kickDone(outcome.kind === 'goal'),
     };
     this.shootout = this.newShootout();
   }
 
-  /** Start a new shootout from the coin toss. */
-  restart(): void {
+  get twoPlayer(): boolean {
+    return this.setup.twoPlayer;
+  }
+
+  /** Start a new shootout from the coin toss, optionally with a new setup. */
+  restart(setup: MatchSetup = this.setup): void {
+    this.setup = setup;
     this.shootout = this.newShootout();
   }
 
@@ -85,43 +107,63 @@ export class Match {
 
       case 'kicking':
         // Before the kick steps, so a click is a dive rather than being swallowed by the run-up.
-        if (this.kick.shooter === 'cpu') this.controlKeeper(dt);
+        if (this.keeperIsHuman(this.kick.shooter)) this.controlKeeper(dt);
         this.kick.step(dt);
         break;
 
       case 'finished':
         s.elapsed += dt;
-        if (this.input.consumePress() && s.elapsed > 1.0) this.restart();
+        if (this.input.consumePress() && s.elapsed > 1.0) {
+          if (this.events.onContinue) this.events.onContinue();
+          else this.restart();
+        }
         break;
     }
   }
 
-  /** True while the player can still dive on a CPU kick: show the dive reticle. */
+  /** True while a human keeper can still dive with the mouse: show the dive reticle. */
   get keeperAiming(): boolean {
+    return this.keeperCanDive && !this.isHuman(this.kick.shooter);
+  }
+
+  /** A human is in goal, hasn't dived yet and the kick is live. */
+  private get keeperCanDive(): boolean {
     const k = this.kick.state.kind;
     return (
       this.state.kind === 'kicking' &&
-      this.kick.shooter === 'cpu' &&
+      this.keeperIsHuman(this.kick.shooter) &&
       this.keeper.ready &&
       !this.director.cutAway &&
-      (k === 'cpuRunUp' || k === 'ballInFlight')
+      k !== 'result' &&
+      k !== 'nextKick'
     );
   }
 
-  /** The player is in goal: track the dive reticle and dive on an arrow key or a click. */
+  private isHuman(side: Side): boolean {
+    return this.setup.twoPlayer || side === 'player';
+  }
+
+  private keeperIsHuman(shooter: Side): boolean {
+    return this.isHuman(otherSide(shooter));
+  }
+
+  /** A human is in goal: dive on an arrow key, or a click when the mouse is free (CPU shooting). */
   private controlKeeper(dt: number): void {
-    if (!this.keeperAiming) {
+    if (!this.keeperCanDive) {
       this.keys.clear();
       return;
     }
-    aimFromPointer(this.input.ndc, this.camera, this.keeperAim);
-    this.keeperAim.x = THREE.MathUtils.clamp(this.keeperAim.x, -GOAL_WIDTH / 2, GOAL_WIDTH / 2);
-    this.keeperAim.y = Math.min(this.keeperAim.y, GOAL_HEIGHT);
-
     const keyDive = this.keys.consumeDive(dt);
     // Arrow keys follow the screen: looking out from behind the keeper, screen left is +x.
     if (keyDive && this.director.keeperView) keyDive.x = -keyDive.x;
-    const target = keyDive ?? (this.input.consumePress() ? { x: this.keeperAim.x, y: this.keeperAim.y } : null);
+
+    let target = keyDive;
+    if (this.keeperAiming) {
+      aimFromPointer(this.input.ndc, this.camera, this.keeperAim);
+      this.keeperAim.x = THREE.MathUtils.clamp(this.keeperAim.x, -GOAL_WIDTH / 2, GOAL_WIDTH / 2);
+      this.keeperAim.y = Math.min(this.keeperAim.y, GOAL_HEIGHT);
+      if (!target && this.input.consumePress()) target = { x: this.keeperAim.x, y: this.keeperAim.y };
+    }
     if (!target) return;
     this.keeper.playerDive(target.x, target.y);
     this.wentEarly = this.kick.keeperCommitted(target.x);
@@ -138,32 +180,50 @@ export class Match {
     this.state = { kind: 'intro', elapsed: 0 };
     this.hud.setScoreboard(shootout, TEAMS);
     this.hud.setStatus('');
-    this.hud.showResult(
-      'Penalty shootout',
-      first === 'player' ? 'You won the toss: you shoot first' : `${TEAMS.cpu.name} shoot first`,
-      false,
-    );
+    const toss =
+      first === 'player' && !this.setup.twoPlayer ? 'You won the toss: you shoot first' : `${TEAMS[first].name} shoot first`;
+    this.hud.showResult(this.setup.introTitle ?? 'Penalty shootout', toss, false);
     return shootout;
   }
 
   private startKick(): void {
     const shooter = this.shootout.next;
+    const keeperHuman = this.keeperIsHuman(shooter);
     this.keeper.reset();
-    this.director.reset(shooter === 'cpu' ? 'keeper' : 'main');
-    // The keeper in goal belongs to the side that isn't shooting; on the CPU's kicks that's you.
-    this.keeper.controlledByPlayer = shooter === 'cpu';
+    // Looking out from behind the goal only helps a human keeper read a CPU kicker.
+    this.director.reset(keeperHuman && !this.isHuman(shooter) ? 'keeper' : 'main');
+    this.keeper.controlledByPlayer = keeperHuman;
     this.keeperMesh.setShirt(keeperShirt(TEAMS[otherSide(shooter)], TEAMS[shooter]));
     this.keys.clear();
     this.wentEarly = false;
     this.sound.whistle();
-    this.kick.start(shooter);
+    this.kick.start(shooter, this.isHuman(shooter));
     this.hud.setScoreboard(this.shootout, TEAMS);
     const prefix = this.shootout.suddenDeath ? 'Sudden death · ' : '';
-    this.hud.setStatus(
-      shooter === 'player'
-        ? `${prefix}Your kick · aim, hold to power up, release to shoot`
-        : `${prefix}You're in goal · arrow keys, or click / tap where to dive`,
-    );
+    if (this.setup.twoPlayer) {
+      const keeperTeam = TEAMS[otherSide(shooter)].name;
+      this.hud.setStatus(`${prefix}${TEAMS[shooter].name} shoot (mouse) · ${keeperTeam} in goal (arrow keys)`);
+    } else {
+      this.hud.setStatus(
+        shooter === 'player'
+          ? `${prefix}Your kick · aim, hold to power up, release to shoot`
+          : `${prefix}You're in goal · arrow keys, or click / tap where to dive`,
+      );
+    }
+  }
+
+  private showResult(outcome: ShotOutcome, launchSpeed: number): void {
+    const shooter = this.kick.shooter;
+    const scored = outcome.kind === 'goal';
+    let detail = `${TEAMS[shooter].name} · ${Math.round(launchSpeed * 3.6)} km/h`;
+    if (!this.setup.twoPlayer && shooter === 'cpu' && scored && this.wentEarly) detail += ' · you went too early';
+    // Gold for good news for the player: their goals and their saves. With two players,
+    // every goal is gold and the crowd enjoys both goals and saves.
+    const good = this.setup.twoPlayer ? scored : shooter === 'player' ? scored : !scored;
+    this.hud.showResult(describeOutcome(outcome), detail, good);
+    const crowdLikes = this.setup.twoPlayer ? outcome.kind === 'goal' || outcome.kind === 'saved' : good;
+    this.sound.react(outcome.kind === 'woodwork' ? 'ooh' : crowdLikes ? 'cheer' : 'groan');
+    this.events.onKick?.(shooter, outcome);
   }
 
   private kickDone(scored: boolean): void {
@@ -177,15 +237,21 @@ export class Match {
       return;
     }
     this.state = { kind: 'finished', winner, elapsed: 0 };
-    this.sound.react(winner === 'player' ? 'roar' : 'groan');
     this.kick.stop();
     this.keeper.reset();
-    const score = `${this.shootout.goals('player')}–${this.shootout.goals('cpu')}`;
     this.hud.setStatus('');
-    this.hud.showResult(
-      winner === 'player' ? 'You win!' : `${TEAMS.cpu.name} win`,
-      `${score} on penalties · click to play again`,
-      winner === 'player',
-    );
+    const banner = this.events.onFinish?.(winner, this.shootout) ?? this.defaultBanner(winner);
+    this.sound.react(banner.good || this.setup.twoPlayer ? 'roar' : 'groan');
+    this.hud.showResult(banner.title, banner.detail, banner.good);
+  }
+
+  private defaultBanner(winner: Side): FinishBanner {
+    const score = `${this.shootout.goals('player')}–${this.shootout.goals('cpu')}`;
+    const youWon = winner === 'player' && !this.setup.twoPlayer;
+    return {
+      title: youWon ? 'You win!' : `${TEAMS[winner].name} win`,
+      detail: `${score} on penalties · click to play again`,
+      good: youWon || this.setup.twoPlayer,
+    };
   }
 }

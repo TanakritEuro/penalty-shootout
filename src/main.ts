@@ -13,6 +13,8 @@ import { Keeper } from './keeper/keeper';
 import { KeeperMesh } from './keeper/mesh';
 import { Kick } from './match/kick';
 import { Match } from './match/match';
+import { Session } from './match/session';
+import { Stats } from './match/stats';
 import { TEAMS } from './match/teams';
 import { createPhysics } from './physics';
 import { createScene } from './scene';
@@ -50,30 +52,46 @@ const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
 
-// The menu starts the game and pauses it (Esc).
+// The menu starts the game and pauses it (Esc); the session runs friendlies, cups and
+// two-player games and keeps the stats.
 let matchStarted = false;
+const stats = new Stats();
+const session = new Session(match, keeper, stats, {
+  onLevel: (level) => hud.setKeeperLevel(level, DEBUG),
+  openMenu: () => {
+    matchStarted = false;
+    openMenu();
+  },
+});
 const menu = new Menu(
-  { teams: { ...TEAMS }, level: keeper.level, muted: sound.isMuted },
+  { mode: 'friendly', teams: { ...TEAMS }, level: keeper.level, muted: sound.isMuted },
   {
     onPlay: (choice) => {
       sound.unlock(); // inside a click: browsers only start audio from a user gesture
-      TEAMS.player = choice.teams.player;
-      TEAMS.cpu = choice.teams.cpu;
-      keeper.level = choice.level;
-      hud.setKeeperLevel(choice.level, DEBUG);
-      match.restart();
+      session.begin(choice);
       matchStarted = true;
       menu.close();
     },
     onResume: () => menu.close(),
     onSound: (muted) => sound.setMuted(muted),
+    onResetStats: () => {
+      stats.reset();
+      menu.setStats(stats.summary());
+    },
   },
 );
+menu.setStats(stats.summary());
+
+/** Open the menu with the latest stats; Resume only while a match is in progress. */
+function openMenu(): void {
+  menu.setStats(stats.summary());
+  menu.open(matchStarted);
+}
 
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape') {
     if (menu.isOpen && matchStarted) menu.close();
-    else menu.open(matchStarted);
+    else openMenu();
     return;
   }
   if (menu.isOpen) return;
@@ -127,7 +145,7 @@ function toggleReplay(): void {
   else if (kick.state.kind === 'result') replay.begin();
 }
 hud.onReplayClick(toggleReplay);
-hud.onMenuClick(() => menu.open(matchStarted));
+hud.onMenuClick(openMenu);
 hud.onContactTap((x, y) => {
   if (kick.state.kind === 'aiming' || kick.state.kind === 'charging') kick.contact = clampContact(x, y);
 });

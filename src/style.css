@@ -603,3 +603,25 @@ body {
     transform: rotate(360deg);
   }
 }
+
+.menu-mode-help {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.menu-row[hidden] {
+  display: none;
+}
+
+.menu-stats {
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 14px;
+}
+
+.menu-panel button.menu-reset {
+  min-height: 28px;
+  padding: 3px 10px;
+  font-size: 12px;
+}

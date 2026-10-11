@@ -117,8 +117,11 @@ export class Kick {
     return true;
   }
 
-  /** Set the ball on the spot and hand the kick to `shooter`. */
-  start(shooter: Side): void {
+  /**
+   * Set the ball on the spot and hand the kick to `shooter`: a human aims and charges, the
+   * CPU picks its shot and runs up.
+   */
+  start(shooter: Side, human = shooter === 'player'): void {
     this.shooter = shooter;
     this.placeBall();
     this.input.consumePress();
@@ -126,7 +129,7 @@ export class Kick {
     this.input.consumeCancel();
     this.spinKeys.consume(); // W / A / S / D pressed between kicks don't count
     this.sinceStrike = null;
-    if (shooter === 'player') {
+    if (human) {
       this.state = { kind: 'aiming' };
     } else {
       const shot = chooseCpuShot();
