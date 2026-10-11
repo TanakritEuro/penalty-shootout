@@ -58,7 +58,26 @@ export class Hud {
   }
 
   setKeeperLevel(level: string): void {
-    this.level.textContent = `CPU keeper: ${level[0].toUpperCase()}${level.slice(1)} · 1 / 2 / 3 to change`;
+    const keys = document.createElement('span');
+    keys.className = 'keys-only';
+    keys.textContent = ' · 1 / 2 / 3 to change';
+    this.level.replaceChildren(`CPU keeper: ${level[0].toUpperCase()}${level.slice(1)}`, keys);
+  }
+
+  onMenuClick(handler: () => void): void {
+    el<HTMLButtonElement>('menu-btn').addEventListener('click', handler);
+  }
+
+  /**
+   * Tapping the spin widget sets the contact point directly: `handler` gets the tapped
+   * spot as fractions of the ball's radius (x right, y up).
+   */
+  onContactTap(handler: (x: number, y: number) => void): void {
+    const ball = el<HTMLDivElement>('contact-ball');
+    ball.addEventListener('pointerdown', (e) => {
+      const r = ball.getBoundingClientRect();
+      handler(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
+    });
   }
 
   /** Show the meter at `power` (0–1), or hide it with null. */

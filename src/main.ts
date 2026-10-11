@@ -19,6 +19,7 @@ import { createScene } from './scene';
 import { applyAero } from './shooting/aero';
 import { Reticle } from './shooting/aim';
 import { overpower, scatterForPower } from './shooting/power';
+import { clampContact } from './shooting/spin';
 import { Recorder } from './replay/recorder';
 import { Replay } from './replay/replay';
 import { Hud } from './ui/hud';
@@ -122,6 +123,10 @@ function toggleReplay(): void {
   else if (kick.state.kind === 'result') replay.begin();
 }
 hud.onReplayClick(toggleReplay);
+hud.onMenuClick(() => menu.open(matchStarted));
+hud.onContactTap((x, y) => {
+  if (kick.state.kind === 'aiming' || kick.state.kind === 'charging') kick.contact = clampContact(x, y);
+});
 
 /** Start, mark and stop the recording as the kick moves through its states. */
 function trackRecording(): void {
@@ -197,6 +202,7 @@ function frame(now: number): void {
   requestAnimationFrame(frame);
 }
 
+window.addEventListener('resize', () => director.refit());
 hud.setKeeperLevel(keeper.level);
 menu.open(false);
 requestAnimationFrame(frame);

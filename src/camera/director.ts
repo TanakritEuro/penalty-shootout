@@ -28,6 +28,7 @@ export class Director {
 
   constructor(private readonly camera: THREE.PerspectiveCamera) {
     this.main = { position: camera.position.clone(), quaternion: camera.quaternion.clone(), fov: camera.fov };
+    this.refit();
   }
 
   /** True from a close-call cut until the next kick: the main camera is not showing. */
@@ -66,7 +67,7 @@ export class Director {
   beginReplay(): void {
     const C = TUNING.director.replayCamera;
     const side = this.shot && this.shot.target.x < 0 ? -1 : 1;
-    this.saved = { position: this.camera.position.clone(), quaternion: this.camera.quaternion.clone(), fov: this.camera.fov };
+    this.saved = { position: this.camera.position.clone(), quaternion: this.camera.quaternion.clone(), fov: this.baseFov };
     this.camera.position.set(side * C.x, C.y, C.z);
     this.camera.lookAt(side * C.lookX, C.lookY, C.lookZ);
     this.setFov(C.fov);
@@ -143,8 +144,29 @@ export class Director {
     }
   }
 
+  /** The vertical field of view each shot is designed for (before fitting to the screen). */
+  private baseFov: number = TUNING.camera.fov;
+
+  /** Re-fit the field of view after the window changes shape. */
+  refit(): void {
+    this.setFov(this.baseFov);
+  }
+
   private setFov(fov: number): void {
-    this.camera.fov = fov;
+    this.baseFov = fov;
+    this.camera.fov = fitFov(fov, this.camera.aspect);
     this.camera.updateProjectionMatrix();
   }
+}
+
+/**
+ * Shots are framed for a landscape screen. On anything narrower than
+ * `TUNING.camera.minAspect` (a phone held upright), widen the vertical field of view so
+ * the same width of the scene stays in view: the goal still fits, with more sky and grass.
+ */
+export function fitFov(vfov: number, aspect: number): number {
+  const minAspect = TUNING.camera.minAspect;
+  if (aspect >= minAspect) return vfov;
+  const halfTan = (Math.tan((vfov * Math.PI) / 360) * minAspect) / aspect;
+  return (Math.atan(halfTan) * 360) / Math.PI;
 }

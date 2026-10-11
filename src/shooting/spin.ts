@@ -37,8 +37,11 @@ export function contactScatter(contact: Contact): number {
 
 /** Move the contact point by (dx, dy), kept inside the allowed circle. */
 export function nudgeContact(contact: Contact, dx: number, dy: number): Contact {
-  const x = contact.x + dx;
-  const y = contact.y + dy;
+  return clampContact(contact.x + dx, contact.y + dy);
+}
+
+/** The contact point at (x, y), pulled back inside the allowed circle if need be. */
+export function clampContact(x: number, y: number): Contact {
   const r = Math.hypot(x, y);
   const max = TUNING.spin.maxOffset;
   return r > max ? { x: (x / r) * max, y: (y / r) * max } : { x, y };

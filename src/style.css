@@ -406,3 +406,170 @@ body {
 #hud.replaying #status {
   visibility: hidden;
 }
+
+/* Touch: no browser scrolling, zooming or text selection over the game. */
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game {
+  touch-action: none;
+}
+
+/* The spin widget and menu button take taps; the rest of the HUD lets them through. */
+#contact-ball,
+#menu-btn {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#contact.hidden #contact-ball {
+  pointer-events: none;
+}
+
+#menu-btn {
+  margin-bottom: 4px;
+  width: 38px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Hints for keys on keyboard-and-mouse devices, for taps on touch screens. */
+.touch-only {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .keys-only {
+    display: none;
+  }
+
+  .touch-only {
+    display: inline;
+  }
+
+  #contact-ball {
+    width: 58px;
+    height: 58px;
+  }
+}
+
+#rotate-hint {
+  display: none;
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  #rotate-hint {
+    display: block;
+    position: fixed;
+    bottom: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 13px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+}
+
+/* Phones (narrow, or short in landscape): a more compact HUD. */
+@media (max-width: 640px), (max-height: 500px) {
+  #scoreboard {
+    top: 8px;
+    left: 8px;
+    gap: 4px 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .sb-dot {
+    width: 10px;
+    height: 10px;
+  }
+
+  .sb-score {
+    font-size: 15px;
+  }
+
+  #corner {
+    top: 8px;
+    right: 8px;
+  }
+
+  #level {
+    display: none;
+  }
+
+  #status {
+    top: 70px;
+    width: 92%;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  #result {
+    top: 70px;
+  }
+
+  #result-title {
+    font-size: 32px;
+  }
+
+  #result-detail {
+    font-size: 13px;
+  }
+
+  #power {
+    width: 58vw;
+    bottom: 26px;
+  }
+
+  #contact {
+    left: 10px;
+    bottom: 18px;
+  }
+
+  #replay-btn {
+    bottom: 76px;
+  }
+}
+
+/* Phone in landscape: there is room across the top but not below it. */
+@media (max-height: 500px) and (min-width: 641px) {
+  #power {
+    bottom: 6px;
+  }
+
+  #power-label {
+    display: none;
+  }
+
+  #replay-btn {
+    bottom: 34px;
+  }
+
+  #status {
+    top: 10px;
+    width: 46%;
+  }
+
+  #result {
+    top: 4px;
+  }
+
+  #result-title {
+    font-size: 28px;
+  }
+}

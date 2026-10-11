@@ -12,6 +12,7 @@
     <div id="hud">
       <div id="scoreboard"></div>
       <div id="corner">
+        <button id="menu-btn" type="button" aria-label="Menu">☰</button>
         <div id="level"></div>
       </div>
       <div id="status">Loading…</div>
@@ -23,7 +24,7 @@
       <button id="replay-btn" type="button" hidden>▶ Replay <span>(Space)</span></button>
       <div id="contact" class="hidden">
         <div id="contact-ball"><div id="contact-dot"></div></div>
-        <div id="contact-label">SPIN · WASD</div>
+        <div id="contact-label">SPIN · <span class="keys-only">WASD</span><span class="touch-only">TAP</span></div>
       </div>
       <div id="power">
         <div id="power-track">
@@ -33,6 +34,7 @@
         <div id="power-label">POWER</div>
       </div>
     </div>
+    <div id="rotate-hint">Turn your phone sideways for the best view</div>
     <div id="menu" hidden></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

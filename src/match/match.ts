@@ -161,8 +161,8 @@ export class Match {
     const prefix = this.shootout.suddenDeath ? 'Sudden death · ' : '';
     this.hud.setStatus(
       shooter === 'player'
-        ? `${prefix}Your kick · aim with the mouse, hold to power up, release to shoot`
-        : `${prefix}You're in goal · dive with the arrow keys, or click where to dive`,
+        ? `${prefix}Your kick · aim, hold to power up, release to shoot`
+        : `${prefix}You're in goal · arrow keys, or click / tap where to dive`,
     );
   }
 

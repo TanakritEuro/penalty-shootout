@@ -221,6 +221,8 @@ export const TUNING = {
     behindSpot: 5.5,
     /** Height (m) of the point on the goal line the camera looks at (below ground: it looks down). */
     lookAtHeight: -1.2,
+    /** Narrowest screen shape (width / height) shown at the designed field of view; see fitFov. */
+    minAspect: 1.6,
   },
   outcome: {
     /** Give up waiting and call it a miss after this many seconds of flight. */
