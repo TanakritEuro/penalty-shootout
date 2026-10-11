@@ -16,7 +16,10 @@ import type { Side } from './shootout';
 export type KickState =
   | { kind: 'aiming' }
   | { kind: 'charging'; elapsed: number }
-  | { kind: 'cpuRunUp'; shot: CpuShot; elapsed: number }
+  /** Power is locked in; the kicker takes the last stride and strikes at the end. */
+  | { kind: 'striking'; aim: { x: number; y: number }; power: number; contact: Contact; from: number; elapsed: number; duration: number }
+  /** `tell`: the side (world x sign) the CPU kicker's hips open towards near the end. */
+  | { kind: 'cpuRunUp'; shot: CpuShot; tell: number; elapsed: number }
   | { kind: 'ballInFlight'; tracker: ShotTracker; launchSpeed: number }
   | { kind: 'result'; outcome: ShotOutcome; launchSpeed: number; elapsed: number }
   | { kind: 'nextKick' };
@@ -68,6 +71,34 @@ export class Kick {
     return this.state.kind === 'charging' ? powerFromCharge(this.state.elapsed) : null;
   }
 
+  /** How far the kicker is along their run-up: 0 standing at the start, 1 striking the ball. */
+  get approach(): number {
+    const s = this.state;
+    const K = TUNING.kicker;
+    switch (s.kind) {
+      case 'aiming':
+      case 'nextKick':
+        return 0;
+      case 'charging':
+        return K.chargeApproach * powerFromCharge(s.elapsed);
+      case 'striking':
+        return s.from + (1 - s.from) * Math.min(1, s.elapsed / s.duration);
+      case 'cpuRunUp':
+        return Math.min(1, s.elapsed / TUNING.cpuKicker.runUpTime);
+      case 'ballInFlight':
+      case 'result':
+        return 1;
+    }
+  }
+
+  /** During the CPU's run-up, the side (world x sign) its hips will open towards; else 0. */
+  get tell(): number {
+    return this.state.kind === 'cpuRunUp' ? this.state.tell : 0;
+  }
+
+  /** Seconds since the ball was struck (game time), or null before the strike. */
+  sinceStrike: number | null = null;
+
   /** CPU run-up progress (0–1) until the ball is struck, or null outside the run-up. */
   get runUp(): number | null {
     return this.state.kind === 'cpuRunUp' ? Math.min(1, this.state.elapsed / TUNING.cpuKicker.runUpTime) : null;
@@ -94,12 +125,21 @@ export class Kick {
     this.input.consumeRelease();
     this.input.consumeCancel();
     this.spinKeys.consume(); // W / A / S / D pressed between kicks don't count
-    this.state = shooter === 'player' ? { kind: 'aiming' } : { kind: 'cpuRunUp', shot: chooseCpuShot(), elapsed: 0 };
+    this.sinceStrike = null;
+    if (shooter === 'player') {
+      this.state = { kind: 'aiming' };
+    } else {
+      const shot = chooseCpuShot();
+      const side = Math.abs(shot.aim.x) > 0.3 ? Math.sign(shot.aim.x) : Math.random() < 0.5 ? -1 : 1;
+      const tell = Math.random() < TUNING.cpuKicker.tellHonesty ? side : -side;
+      this.state = { kind: 'cpuRunUp', shot, tell, elapsed: 0 };
+    }
   }
 
   /** Abandon the kick in progress and leave the ball on the spot, idle. */
   stop(): void {
     this.placeBall();
+    this.sinceStrike = null;
     this.state = { kind: 'nextKick' };
   }
 
@@ -109,6 +149,7 @@ export class Kick {
   }
 
   step(dt: number): void {
+    if (this.sinceStrike !== null) this.sinceStrike += dt;
     const s = this.state;
     switch (s.kind) {
       case 'aiming':
@@ -126,7 +167,13 @@ export class Kick {
         this.updateContact();
         s.elapsed += dt;
         if (this.input.consumeCancel()) this.state = { kind: 'aiming' };
-        else if (this.input.consumeRelease()) this.shoot(this.aim, powerFromCharge(s.elapsed), this.contact);
+        else if (this.input.consumeRelease()) this.startStrike(powerFromCharge(s.elapsed));
+        break;
+
+      case 'striking':
+        this.input.consumePress();
+        s.elapsed += dt;
+        if (s.elapsed >= s.duration) this.shoot(s.aim, s.power, s.contact);
         break;
 
       case 'cpuRunUp':
@@ -159,6 +206,14 @@ export class Kick {
     }
   }
 
+  /** Lock in aim, power and contact and send the kicker on to the ball. */
+  private startStrike(power: number): void {
+    const K = TUNING.kicker;
+    const from = K.chargeApproach * power;
+    const duration = K.strikeTime + (K.maxStrikeTime - K.strikeTime) * (1 - from / K.chargeApproach);
+    this.state = { kind: 'striking', aim: { x: this.aim.x, y: this.aim.y }, power, contact: this.contact, from, elapsed: 0, duration };
+  }
+
   private updateAim(): void {
     aimFromPointer(this.input.ndc, this.camera, this.aim);
   }
@@ -183,6 +238,7 @@ export class Kick {
     this.ball.setLinvel(v, true);
     this.ball.setAngvel(spin, true);
     const launchSpeed = Math.hypot(v.x, v.y, v.z);
+    this.sinceStrike = 0;
     this.state = { kind: 'ballInFlight', tracker: new ShotTracker(), launchSpeed };
     this.events.onShot?.({ target, apparentTarget: { x: apparentTarget.x, y: apparentTarget.y }, flightTime, launchSpeed });
   }

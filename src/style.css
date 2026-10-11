@@ -48,7 +48,7 @@ body {
 
 #result {
   position: absolute;
-  top: 32px;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -56,8 +56,9 @@ body {
 }
 
 #result-title {
-  font-size: 56px;
+  font-size: 48px;
   font-weight: 800;
+  line-height: 1.1;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
@@ -67,8 +68,8 @@ body {
 }
 
 #result-detail {
-  margin-top: 4px;
-  font-size: 18px;
+  margin-top: 0;
+  font-size: 16px;
   opacity: 0.85;
 }
 

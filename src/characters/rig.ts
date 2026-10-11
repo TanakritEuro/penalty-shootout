@@ -114,7 +114,9 @@ export class Rig {
     // Trunk
     this.root.add(J.hips);
     J.hips.position.y = this.hipHeight;
-    this.part(J.hips, new THREE.BoxGeometry(0.32, 0.2, 0.2), M.shorts, 0, 0.0, 0);
+    // Shorts: a capsule lying across the hips.
+    const shorts = new THREE.CapsuleGeometry(0.12, 0.12, 4, 10).rotateZ(Math.PI / 2);
+    this.part(J.hips, shorts, M.shorts, 0, -0.01, 0);
     J.hips.add(J.spine);
     J.spine.position.y = spineBase;
     this.part(J.spine, new THREE.CapsuleGeometry(0.16, torsoTop - 0.3, 4, 10), M.shirt, 0, torsoTop / 2, 0);

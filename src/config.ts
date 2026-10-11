@@ -58,6 +58,21 @@ export const TUNING = {
     /** Seconds the "Penalty shootout" banner shows before the first kick (click to skip). */
     introDuration: 2.5,
   },
+  kicker: {
+    /** How far along the run-up (0–1) holding the power button takes the player's kicker. */
+    chargeApproach: 0.75,
+    /**
+     * After release, the last stride to the ball takes this long (s) from a full charge,
+     * up to maxStrikeTime from a standing start. The ball leaves the boot at the end of it.
+     */
+    strikeTime: 0.16,
+    maxStrikeTime: 0.4,
+    /** Where the kicker waits (m, ground), and where they stand as the boot meets the ball. */
+    runUpStart: { x: -1.5, z: 13.4 },
+    strikePoint: { x: -0.14, z: 11.42 },
+    /** Distance (m) covered by one running stride (two steps). */
+    stride: 1.3,
+  },
   cpuKicker: {
     /** Seconds between the kick being set up and the computer striking it. */
     runUpTime: 1.1,
@@ -75,6 +90,11 @@ export const TUNING = {
     /** Chance the computer curls its shot, and how far off-centre (0–1) it strikes it then. */
     spinChance: 0.35,
     maxContact: 0.6,
+    /**
+     * In the last part of the run-up the kicker opens their hips towards a side: the tell
+     * a keeper can read. This is the chance it points the way the ball really goes.
+     */
+    tellHonesty: 0.75,
   },
   keeper: {
     /** Starting difficulty; keys 1 / 2 / 3 switch level during play. */
@@ -174,12 +194,15 @@ export const TUNING = {
   },
   camera: {
     /** Vertical field of view (degrees). Narrower makes the goal bigger but crops the ball. */
-    fov: 34,
-    /** Height (m) and distance behind the penalty spot (m). */
-    height: 1.1,
-    behindSpot: 4.0,
-    /** Height (m) of the point on the goal line the camera looks at. */
-    lookAtHeight: 0.3,
+    fov: 36,
+    /**
+     * Height (m) and distance behind the penalty spot (m). High enough to look over the
+     * kicker's head at the goal during the run-up.
+     */
+    height: 2.6,
+    behindSpot: 5.5,
+    /** Height (m) of the point on the goal line the camera looks at (below ground: it looks down). */
+    lookAtHeight: -1.2,
   },
   outcome: {
     /** Give up waiting and call it a miss after this many seconds of flight. */

@@ -2,6 +2,7 @@
 // Physics and game logic run on a fixed step; rendering runs once per animation frame.
 
 import { Director } from './camera/director';
+import { Kickers } from './characters/kicker';
 import type { KeeperLevelName } from './config';
 import { PHYSICS_STEP } from './constants';
 import { KeeperKeys } from './input/keeperKeys';
@@ -25,6 +26,8 @@ const { world, ball, events, tags } = await createPhysics();
 const keeper = new Keeper(world, tags);
 const keeperMesh = new KeeperMesh(keeper);
 scene.add(keeperMesh.object);
+const kickers = new Kickers();
+scene.add(kickers.object);
 const hud = new Hud();
 const input = new PointerInput(canvas);
 const reticle = new Reticle();
@@ -68,6 +71,7 @@ function render(gameDt: number): void {
   ballMesh.position.set(p.x, p.y, p.z);
   ballMesh.quaternion.set(r.x, r.y, r.z, r.w);
   keeperMesh.update(gameDt);
+  kickers.update(gameDt, kick);
 
   const state = kick.state.kind;
   const power = state === 'charging' ? kick.power : null;
@@ -85,17 +89,21 @@ function render(gameDt: number): void {
 let last = performance.now();
 let accumulator = 0;
 
+// Debug aid: ?timescale=0.1 runs the whole game at a tenth of the speed, for checking animation.
+const debugTimeScale = Number(new URLSearchParams(location.search).get('timescale') ?? 1) || 1;
+
 function frame(now: number): void {
-  const realDt = Math.min((now - last) / 1000, 0.25);
+  const realDt = Math.min((now - last) / 1000, 0.25) * debugTimeScale;
   last = now;
   director.update(realDt, ball.translation(), kick.state.kind === 'ballInFlight', keeper);
   // Slow motion: the same fixed physics step, just fewer of them per real second.
-  accumulator += realDt * director.timeScale;
+  const gameDt = realDt * director.timeScale;
+  accumulator += gameDt;
   while (accumulator >= PHYSICS_STEP) {
     fixedStep();
     accumulator -= PHYSICS_STEP;
   }
-  render(realDt * director.timeScale);
+  render(gameDt);
   requestAnimationFrame(frame);
 }
 
