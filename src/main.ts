@@ -19,6 +19,8 @@ import { createScene } from './scene';
 import { applyAero } from './shooting/aero';
 import { Reticle } from './shooting/aim';
 import { overpower, scatterForPower } from './shooting/power';
+import { Recorder } from './replay/recorder';
+import { Replay } from './replay/replay';
 import { Hud } from './ui/hud';
 import { Menu } from './ui/menu';
 
@@ -70,6 +72,12 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (menu.isOpen) return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    toggleReplay();
+    return;
+  }
+  if (replay.active) return;
   if (e.code === 'KeyR') match.restart();
   if (e.code === 'KeyM') {
     sound.setMuted(!sound.isMuted);
@@ -104,6 +112,27 @@ function fixedStep(): void {
   net.step(PHYSICS_STEP);
 }
 
+// Replays: record each kick from its start; play the last one back on request.
+const recorder = new Recorder([ballMesh, keeperMesh.object, kickers.object], net);
+const replay = new Replay(recorder, director, net);
+let lastKickState = kick.state.kind;
+
+function toggleReplay(): void {
+  if (replay.active) replay.finish();
+  else if (kick.state.kind === 'result') replay.begin();
+}
+hud.onReplayClick(toggleReplay);
+
+/** Start, mark and stop the recording as the kick moves through its states. */
+function trackRecording(): void {
+  const k = kick.state.kind;
+  if (k === lastKickState) return;
+  if (k === 'aiming' || k === 'cpuRunUp') recorder.start();
+  if (k === 'ballInFlight') recorder.markStrike();
+  if (k === 'nextKick') recorder.stop();
+  lastKickState = k;
+}
+
 function render(gameDt: number): void {
   const p = ball.translation();
   const r = ball.rotation();
@@ -121,7 +150,17 @@ function render(gameDt: number): void {
   hud.setContact(state === 'aiming' || state === 'charging' ? kick.contact : null);
   if (kick.runUp !== null) hud.setRunUp(kick.runUp);
   else hud.setPower(state === 'aiming' ? 0 : power);
+  hud.setReplay(state === 'result' && replay.available ? 'available' : null);
 
+  trackRecording();
+  recorder.capture(gameDt);
+  renderer.render(scene, camera);
+}
+
+/** A replay frame: the recorder poses the scene; nothing live is updated. */
+function renderReplay(): void {
+  reticle.visible = false;
+  hud.setReplay('playing');
   renderer.render(scene, camera);
 }
 
@@ -135,6 +174,17 @@ function frame(now: number): void {
   // Paused while the menu is open: keep rendering, but no game time passes.
   const realDt = menu.isOpen ? 0 : Math.min((now - last) / 1000, 0.25) * debugTimeScale;
   last = now;
+  if (replay.active) {
+    // The game is frozen during a replay; a click or tap ends it early.
+    if (input.consumePress()) replay.finish();
+    else replay.update(realDt);
+    if (replay.active) {
+      renderReplay();
+      requestAnimationFrame(frame);
+      return;
+    }
+    input.consumeRelease();
+  }
   director.update(realDt, ball.translation(), kick.state.kind === 'ballInFlight', keeper);
   // Slow motion: the same fixed physics step, just fewer of them per real second.
   const gameDt = realDt * director.timeScale;

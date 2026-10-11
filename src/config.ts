@@ -204,6 +204,11 @@ export const TUNING = {
      */
     keeperCamera: { x: 1.5, y: 1.7, z: -5.5, lookX: -0.4, lookY: 0.4, lookZ: 11, fov: 40 },
     useKeeperCamera: true,
+    /** Replays: a side-on view across the penalty area, mirrored to the side the shot went. */
+    replayCamera: { x: 9, y: 2.4, z: 7.5, lookX: -0.5, lookY: 0.9, lookZ: 4.2, fov: 46 },
+    /** Replay speed (fraction of real time) and how much run-up (s) to show before the strike. */
+    replaySpeed: 0.5,
+    replayLead: 1.2,
   },
   camera: {
     /** Vertical field of view (degrees). Narrower makes the goal bigger but crops the ball. */

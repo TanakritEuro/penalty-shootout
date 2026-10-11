@@ -20,6 +20,9 @@ export class Hud {
   private readonly powerDanger = el<HTMLDivElement>('power-danger');
   private readonly contact = el<HTMLDivElement>('contact');
   private readonly contactDot = el<HTMLDivElement>('contact-dot');
+  private readonly root = el<HTMLDivElement>('hud');
+  private readonly replayTag = el<HTMLDivElement>('replay-tag');
+  private readonly replayButton = el<HTMLButtonElement>('replay-btn');
 
   constructor() {
     this.powerDanger.style.width = `${(1 - TUNING.shooting.overpowerThreshold) * 100}%`;
@@ -85,6 +88,20 @@ export class Hud {
     if (!contact) return;
     this.contactDot.style.left = `${50 + contact.x * 50}%`;
     this.contactDot.style.top = `${50 - contact.y * 50}%`;
+  }
+
+  /**
+   * Replay controls: 'available' offers the Replay button, 'playing' shows the REPLAY
+   * badge and hides the live HUD, null hides both.
+   */
+  setReplay(state: 'available' | 'playing' | null): void {
+    this.replayButton.hidden = state !== 'available';
+    this.replayTag.hidden = state !== 'playing';
+    this.root.classList.toggle('replaying', state === 'playing');
+  }
+
+  onReplayClick(handler: () => void): void {
+    this.replayButton.addEventListener('click', handler);
   }
 
   /** `good`: news the player wants (their goal, their save), shown in gold. */

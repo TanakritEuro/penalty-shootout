@@ -12,7 +12,7 @@ interface Panel {
   outward: number;
 }
 
-interface Ripple {
+export interface Ripple {
   x: number;
   y: number;
   z: number;
@@ -70,6 +70,17 @@ export class Net {
   }
 
   /** Advance the ripples by `dt` game seconds and reshape the net. */
+  /** A copy of the current ripples, for replays. */
+  snapshot(): Ripple[] {
+    return this.ripples.map((r) => ({ ...r }));
+  }
+
+  /** Put back ripples from `snapshot()` and reshape the net to match. */
+  restore(ripples: Ripple[]): void {
+    this.ripples = ripples.map((r) => ({ ...r }));
+    this.apply();
+  }
+
   step(dt: number): void {
     if (this.ripples.length === 0) return;
     const R = TUNING.net;

@@ -60,6 +60,27 @@ export class Director {
    */
   keeperView = false;
 
+  private saved: { position: THREE.Vector3; quaternion: THREE.Quaternion; fov: number } | null = null;
+
+  /** Switch to the replay camera, remembering the current view. */
+  beginReplay(): void {
+    const C = TUNING.director.replayCamera;
+    const side = this.shot && this.shot.target.x < 0 ? -1 : 1;
+    this.saved = { position: this.camera.position.clone(), quaternion: this.camera.quaternion.clone(), fov: this.camera.fov };
+    this.camera.position.set(side * C.x, C.y, C.z);
+    this.camera.lookAt(side * C.lookX, C.lookY, C.lookZ);
+    this.setFov(C.fov);
+  }
+
+  /** Back to whatever the camera showed before the replay. */
+  endReplay(): void {
+    if (!this.saved) return;
+    this.camera.position.copy(this.saved.position);
+    this.camera.quaternion.copy(this.saved.quaternion);
+    this.setFov(this.saved.fov);
+    this.saved = null;
+  }
+
   onShot(shot: Shot): void {
     this.shot = shot;
     this.triggered = false;
