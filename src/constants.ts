@@ -18,8 +18,14 @@ export const BALL_MASS = 0.43;
 
 export const GRAVITY = -9.81;
 export const PHYSICS_STEP = 1 / 60;
-/** Rapier linear damping on the ball: crude air drag until Milestone 5 adds a real model. */
-export const BALL_LINEAR_DAMPING = 0.05;
+
+// Ball aerodynamics (see shooting/aero.ts).
+export const AIR_DENSITY = 1.2; // kg/m³ at sea level, ~20 °C
+/** Drag coefficient of a football at shooting speeds (past the drag crisis). */
+export const BALL_DRAG_COEFFICIENT = 0.25;
+export const BALL_CROSS_SECTION = Math.PI * BALL_RADIUS * BALL_RADIUS;
+/** Rapier angular damping on the ball: spin bleeds off slowly in flight. */
+export const BALL_ANGULAR_DAMPING = 0.2;
 
 // Keeper body (a simple capsule person). Local frame: origin at the feet, +Y up the body.
 export const KEEPER_HEIGHT = 1.9; // feet to top of head

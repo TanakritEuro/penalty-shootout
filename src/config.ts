@@ -26,6 +26,12 @@ export const TUNING = {
     /** Random scatter (m, standard deviation) added at full overpower. */
     overpowerScatter: 0.35,
   },
+  ball: {
+    /** Scales the Magnus force: 1 is physical, higher bends shots more. */
+    curveStrength: 1.0,
+    /** Lift coefficient cap; it otherwise rises with spin (r·ω / v). */
+    maxLiftCoefficient: 0.35,
+  },
   aim: {
     /** How far outside the posts (m) and above the bar (m) the reticle may go. */
     marginWide: 1.6,

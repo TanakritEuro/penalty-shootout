@@ -1,6 +1,6 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import {
-  BALL_LINEAR_DAMPING,
+  BALL_ANGULAR_DAMPING,
   BALL_MASS,
   BALL_RADIUS,
   GOAL_DEPTH,
@@ -70,11 +70,20 @@ export async function createPhysics(): Promise<Physics> {
   net(t, topY / 2, GOAL_DEPTH / 2, -halfW, topY / 2, -GOAL_DEPTH / 2); // left side
   net(t, topY / 2, GOAL_DEPTH / 2, halfW, topY / 2, -GOAL_DEPTH / 2); // right side
 
-  // Ball
+  const ball = createBall(world);
+
+  return { world, ball, events: new RAPIER.EventQueue(true), tags };
+}
+
+/**
+ * The ball's rigid body and collider. Shared with the flight predictor
+ * (shooting/trajectory.ts), which flies an identical ball in a world of its own.
+ */
+export function createBall(world: RAPIER.World): RAPIER.RigidBody {
   const ball = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
-      .setLinearDamping(BALL_LINEAR_DAMPING)
-      .setAngularDamping(0.4)
+      // No linear damping: air drag and Magnus lift are applied as forces each step (shooting/aero.ts).
+      .setAngularDamping(BALL_ANGULAR_DAMPING)
       .setCcdEnabled(true), // fast shots must not tunnel through posts or net
   );
   world.createCollider(
@@ -85,6 +94,5 @@ export async function createPhysics(): Promise<Physics> {
       .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
     ball,
   );
-
-  return { world, ball, events: new RAPIER.EventQueue(true), tags };
+  return ball;
 }

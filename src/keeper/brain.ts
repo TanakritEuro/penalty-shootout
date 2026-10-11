@@ -44,7 +44,8 @@ export function planDive(shot: Shot, level: KeeperLevelName): DivePlan {
   return {
     x: Math.max(-GOAL_WIDTH / 2, Math.min(GOAL_WIDTH / 2, x)),
     y: Math.max(0.1, Math.min(GOAL_HEIGHT, y)),
-    delay: L.reactionTime,
+    // A keeper who has read it times the dive to meet the ball; a guesser just goes.
+    delay: read ? Math.max(L.reactionTime, shot.flightTime - L.diveTime) : L.reactionTime,
     read,
   };
 }

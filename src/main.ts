@@ -11,6 +11,7 @@ import { Kick } from './match/kick';
 import { Match } from './match/match';
 import { createPhysics } from './physics';
 import { createScene } from './scene';
+import { applyAero } from './shooting/aero';
 import { Reticle } from './shooting/aim';
 import { overpower, scatterForPower } from './shooting/power';
 import { Hud } from './ui/hud';
@@ -43,6 +44,7 @@ window.addEventListener('keydown', (e) => {
 
 function fixedStep(): void {
   keeper.step(PHYSICS_STEP);
+  applyAero(ball);
   world.step(events);
   events.drainCollisionEvents((h1, h2, started) => {
     if (!started) return;
