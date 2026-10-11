@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { TUNING } from '../config';
 import type { Kick } from '../match/kick';
 import type { Side } from '../match/shootout';
-import { TEAMS } from '../match/teams';
+import { TEAMS, type Team } from '../match/teams';
 import { blendPoses, DEFAULT_DIMS, Rig, type Pose } from './rig';
 
 /**
@@ -21,23 +21,28 @@ export class Kickers {
   /** The CPU's tell, latched so the body doesn't snap back the moment the ball goes. */
   private tell = 0;
 
+  /** The team each rig is currently dressed as. */
+  private readonly dressed: Record<Side, Team>;
+
   constructor() {
-    const rig = (side: Side) =>
-      new Rig(DEFAULT_DIMS, {
-        shirt: new THREE.Color(TEAMS[side].colour).getHex(),
-        shorts: 0xf2f2f2,
-        socks: new THREE.Color(TEAMS[side].colour).getHex(),
-        boots: 0x111111,
-        skin: side === 'player' ? 0xd7a37c : 0x9a6a48,
-        hands: side === 'player' ? 0xd7a37c : 0x9a6a48,
-        longSleeves: false,
-      });
+    const rig = (side: Side) => {
+      const t = TEAMS[side];
+      return new Rig(DEFAULT_DIMS, { ...teamColours(t), boots: 0x111111, hands: t.skin, longSleeves: false });
+    };
     this.rigs = { player: rig('player'), cpu: rig('cpu') };
+    this.dressed = { ...TEAMS };
     this.object.add(this.rigs.player.root, this.rigs.cpu.root);
   }
 
   /** Pose the kicker taking `kick`. `dt` is game seconds. */
   update(dt: number, kick: Kick): void {
+    // The menu may have picked new teams since the last frame.
+    for (const side of ['player', 'cpu'] as const) {
+      if (this.dressed[side] !== TEAMS[side]) {
+        this.dressed[side] = TEAMS[side];
+        this.rigs[side].setColours(teamColours(TEAMS[side]));
+      }
+    }
     this.clock += dt;
     const shooter = kick.shooter;
     const rig = this.rigs[shooter];
@@ -221,4 +226,8 @@ function dejectedPose(): Pose {
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
   return t * t * (3 - 2 * t);
+}
+
+function teamColours(team: Team): { shirt: number; shorts: number; socks: number; skin: number } {
+  return { shirt: new THREE.Color(team.colour).getHex(), shorts: team.shorts, socks: team.socks, skin: team.skin };
 }

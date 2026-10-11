@@ -12,12 +12,14 @@ import { Keeper } from './keeper/keeper';
 import { KeeperMesh } from './keeper/mesh';
 import { Kick } from './match/kick';
 import { Match } from './match/match';
+import { TEAMS } from './match/teams';
 import { createPhysics } from './physics';
 import { createScene } from './scene';
 import { applyAero } from './shooting/aero';
 import { Reticle } from './shooting/aim';
 import { overpower, scatterForPower } from './shooting/power';
 import { Hud } from './ui/hud';
+import { Menu } from './ui/menu';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 
@@ -39,7 +41,31 @@ const match = new Match(kick, keeper, keeperMesh, input, new KeeperKeys(), camer
 
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
 
+// The menu starts the game and pauses it (Esc).
+let matchStarted = false;
+const menu = new Menu(
+  { teams: { ...TEAMS }, level: keeper.level },
+  {
+    onPlay: (choice) => {
+      TEAMS.player = choice.teams.player;
+      TEAMS.cpu = choice.teams.cpu;
+      keeper.level = choice.level;
+      hud.setKeeperLevel(choice.level);
+      match.restart();
+      matchStarted = true;
+      menu.close();
+    },
+    onResume: () => menu.close(),
+  },
+);
+
 window.addEventListener('keydown', (e) => {
+  if (e.code === 'Escape') {
+    if (menu.isOpen && matchStarted) menu.close();
+    else menu.open(matchStarted);
+    return;
+  }
+  if (menu.isOpen) return;
   if (e.code === 'KeyR') match.restart();
   const level = LEVEL_KEYS[e.code];
   if (level) {
@@ -93,7 +119,8 @@ let accumulator = 0;
 const debugTimeScale = Number(new URLSearchParams(location.search).get('timescale') ?? 1) || 1;
 
 function frame(now: number): void {
-  const realDt = Math.min((now - last) / 1000, 0.25) * debugTimeScale;
+  // Paused while the menu is open: keep rendering, but no game time passes.
+  const realDt = menu.isOpen ? 0 : Math.min((now - last) / 1000, 0.25) * debugTimeScale;
   last = now;
   director.update(realDt, ball.translation(), kick.state.kind === 'ballInFlight', keeper);
   // Slow motion: the same fixed physics step, just fewer of them per real second.
@@ -108,4 +135,5 @@ function frame(now: number): void {
 }
 
 hud.setKeeperLevel(keeper.level);
+menu.open(false);
 requestAnimationFrame(frame);

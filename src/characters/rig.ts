@@ -80,6 +80,9 @@ export class Rig {
   readonly joints = {} as Record<Joint, THREE.Group>;
   private readonly materials: Record<'shirt' | 'shorts' | 'socks' | 'boots' | 'skin' | 'hands' | 'sleeves', THREE.MeshStandardMaterial>;
   private readonly hipHeight: number;
+  private readonly longSleeves: boolean;
+  /** Bare hands follow the skin colour; gloves keep their own. */
+  private readonly bareHands: boolean;
 
   constructor(
     readonly dims: RigDims,
@@ -95,6 +98,8 @@ export class Rig {
       hands: mat(kit.hands),
       sleeves: mat(kit.longSleeves ? kit.shirt : kit.skin),
     };
+    this.longSleeves = kit.longSleeves;
+    this.bareHands = kit.hands === kit.skin;
     for (const j of JOINTS) {
       const g = new THREE.Group();
       g.name = j;
@@ -160,9 +165,22 @@ export class Rig {
     }
   }
 
+  /** Recolour parts of the kit (e.g. for a new team). */
+  setColours(kit: Partial<Pick<Kit, 'shirt' | 'shorts' | 'socks' | 'skin'>>): void {
+    const M = this.materials;
+    if (kit.shorts !== undefined) M.shorts.color.setHex(kit.shorts);
+    if (kit.socks !== undefined) M.socks.color.setHex(kit.socks);
+    if (kit.skin !== undefined) {
+      M.skin.color.setHex(kit.skin);
+      if (this.bareHands) M.hands.color.setHex(kit.skin);
+      if (!this.longSleeves) M.sleeves.color.setHex(kit.skin);
+    }
+    if (kit.shirt !== undefined) this.setShirt(kit.shirt);
+  }
+
   setShirt(colour: number): void {
     this.materials.shirt.color.setHex(colour);
-    if (this.materials.sleeves !== this.materials.skin) this.materials.sleeves.color.setHex(colour);
+    if (this.longSleeves) this.materials.sleeves.color.setHex(colour);
   }
 
   /** Apply a pose: every joint not mentioned goes back to rest. */

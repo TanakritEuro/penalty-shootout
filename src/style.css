@@ -249,3 +249,112 @@ body {
   letter-spacing: 0.15em;
   opacity: 0.8;
 }
+
+/* Start / pause menu */
+#menu {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(6, 16, 10, 0.55);
+  backdrop-filter: blur(3px);
+  color: #fff;
+  overflow-y: auto;
+}
+
+#menu[hidden] {
+  display: none;
+}
+
+.menu-panel {
+  width: min(640px, 100%);
+  padding: 22px 24px;
+  border-radius: 14px;
+  background: rgba(14, 30, 20, 0.92);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+
+.menu-panel h1 {
+  margin-bottom: 16px;
+  font-size: 30px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.menu-row {
+  margin-bottom: 14px;
+}
+
+.menu-label {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.menu-teams,
+.menu-seg,
+.menu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.menu-panel button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.menu-panel button:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.menu-panel button.selected {
+  border-color: #ffe14d;
+  background: rgba(255, 225, 77, 0.14);
+}
+
+.menu-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.menu-actions {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.menu-panel button.menu-play {
+  border-color: #4cd964;
+  background: #2f9e47;
+  font-size: 16px;
+  padding: 8px 22px;
+}
+
+.menu-panel button[hidden] {
+  display: none;
+}
+
+.menu-help {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.7;
+}

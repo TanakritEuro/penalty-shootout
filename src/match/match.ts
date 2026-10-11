@@ -11,7 +11,7 @@ import { describeOutcome } from '../shooting/outcome';
 import type { Hud } from '../ui/hud';
 import type { Kick } from './kick';
 import { otherSide, Shootout, type Side } from './shootout';
-import { TEAMS } from './teams';
+import { keeperShirt, TEAMS } from './teams';
 
 export type MatchState =
   | { kind: 'intro'; elapsed: number }
@@ -127,7 +127,7 @@ export class Match {
     this.kick.stop(first);
     this.keeper.reset();
     this.director.reset();
-    this.keeperMesh.setShirt(TEAMS[otherSide(first)].keeperShirt);
+    this.keeperMesh.setShirt(keeperShirt(TEAMS[otherSide(first)], TEAMS[first]));
     this.input.consumePress();
     this.state = { kind: 'intro', elapsed: 0 };
     this.hud.setScoreboard(shootout, TEAMS);
@@ -146,7 +146,7 @@ export class Match {
     this.director.reset(shooter === 'cpu' ? 'keeper' : 'main');
     // The keeper in goal belongs to the side that isn't shooting; on the CPU's kicks that's you.
     this.keeper.controlledByPlayer = shooter === 'cpu';
-    this.keeperMesh.setShirt(TEAMS[otherSide(shooter)].keeperShirt);
+    this.keeperMesh.setShirt(keeperShirt(TEAMS[otherSide(shooter)], TEAMS[shooter]));
     this.keys.clear();
     this.wentEarly = false;
     this.kick.start(shooter);
