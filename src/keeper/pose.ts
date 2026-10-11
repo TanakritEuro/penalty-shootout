@@ -116,3 +116,13 @@ function clamp(v: number, lo: number, hi: number): number {
 function clamp01(v: number): number {
   return clamp(v, 0, 1);
 }
+
+/**
+ * Rough distance (m) in the plane of the goal line from (px, py) to the keeper: to the
+ * line from their feet up through their outstretched gloves.
+ */
+export function distanceToKeeper(p: KeeperPose, px: number, py: number): number {
+  const axis = bodyAxis(p.lean);
+  const along = clamp((px - p.x) * axis.x + (py - p.y) * axis.y, 0, GLOVE_REACH);
+  return Math.hypot(px - (p.x + axis.x * along), py - (p.y + axis.y * along));
+}

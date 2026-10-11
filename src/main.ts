@@ -1,6 +1,7 @@
 // Entry point: builds the scene and physics, then runs the game loop.
 // Physics and game logic run on a fixed step; rendering runs once per animation frame.
 
+import { Director } from './camera/director';
 import type { KeeperLevelName } from './config';
 import { PHYSICS_STEP } from './constants';
 import { KeeperKeys } from './input/keeperKeys';
@@ -30,7 +31,8 @@ const reticle = new Reticle();
 scene.add(reticle.object);
 
 const kick = new Kick(ball, input, camera, new SpinKeys());
-const match = new Match(kick, keeper, keeperMesh, input, new KeeperKeys(), camera, hud);
+const director = new Director(camera);
+const match = new Match(kick, keeper, keeperMesh, input, new KeeperKeys(), camera, hud, director);
 
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
 
@@ -79,8 +81,11 @@ let last = performance.now();
 let accumulator = 0;
 
 function frame(now: number): void {
-  accumulator += Math.min((now - last) / 1000, 0.25);
+  const realDt = Math.min((now - last) / 1000, 0.25);
   last = now;
+  director.update(realDt, ball.translation(), kick.state.kind === 'ballInFlight', keeper);
+  // Slow motion: the same fixed physics step, just fewer of them per real second.
+  accumulator += realDt * director.timeScale;
   while (accumulator >= PHYSICS_STEP) {
     fixedStep();
     accumulator -= PHYSICS_STEP;

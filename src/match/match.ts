@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Director } from '../camera/director';
 import { TUNING } from '../config';
 import { GOAL_HEIGHT, GOAL_WIDTH } from '../constants';
 import type { KeeperKeys } from '../input/keeperKeys';
@@ -38,11 +39,13 @@ export class Match {
     private readonly keys: KeeperKeys,
     private readonly camera: THREE.Camera,
     private readonly hud: Hud,
+    private readonly director: Director,
   ) {
     kick.events = {
       onShot: (shot) => {
         this.hud.setStatus('');
         this.keeper.react(shot);
+        this.director.onShot(shot);
       },
       onResult: (outcome, launchSpeed) => {
         const shooter = this.kick.shooter;
@@ -94,6 +97,7 @@ export class Match {
       this.state.kind === 'kicking' &&
       this.kick.shooter === 'cpu' &&
       this.keeper.ready &&
+      !this.director.cutAway &&
       (k === 'cpuRunUp' || k === 'ballInFlight')
     );
   }
@@ -119,6 +123,7 @@ export class Match {
     const shootout = new Shootout(first);
     this.kick.stop();
     this.keeper.reset();
+    this.director.reset();
     this.keeperMesh.setShirt(TEAMS[otherSide(first)].keeperShirt);
     this.input.consumePress();
     this.state = { kind: 'intro', elapsed: 0 };
@@ -135,6 +140,7 @@ export class Match {
   private startKick(): void {
     const shooter = this.shootout.next;
     this.keeper.reset();
+    this.director.reset();
     // The keeper in goal belongs to the side that isn't shooting; on the CPU's kicks that's you.
     this.keeper.controlledByPlayer = shooter === 'cpu';
     this.keeperMesh.setShirt(TEAMS[otherSide(shooter)].keeperShirt);

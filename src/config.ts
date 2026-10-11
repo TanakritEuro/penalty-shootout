@@ -140,6 +140,24 @@ export const TUNING = {
      */
     assistRadius: 1.2,
   },
+  director: {
+    /** Slow motion and a camera cut fire when the ball gets this close to the goal line (m)... */
+    triggerDistance: 2.2,
+    /** ...and is heading within this much (m) of a post or the bar... */
+    woodworkMargin: 0.35,
+    /** ...or is this close (m) to the keeper's body or gloves. */
+    keeperMargin: 0.7,
+    /** Game speed in slow motion, and how long it lasts (real seconds) before easing back. */
+    slowScale: 0.25,
+    slowHold: 0.8,
+    easeIn: 0.08,
+    easeOut: 0.35,
+    /**
+     * Close-call camera: low, outside the post on the side the ball is going, looking back
+     * across the goal mouth. x is mirrored to that side.
+     */
+    cutCamera: { x: 6.5, y: 1.1, z: 3.2, lookX: 1.6, lookY: 1.0, lookZ: 0, fov: 42 },
+  },
   camera: {
     /** Vertical field of view (degrees). Narrower makes the goal bigger but crops the ball. */
     fov: 34,

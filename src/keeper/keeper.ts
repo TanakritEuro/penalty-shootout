@@ -12,7 +12,7 @@ import {
 import type { Shot } from '../match/kick';
 import type { ColliderTag } from '../physics';
 import { planDive, type DivePlan } from './brain';
-import { diveTargetPose, landedPose, lerpPose, standingPose, type KeeperPose } from './pose';
+import { distanceToKeeper, diveTargetPose, landedPose, lerpPose, standingPose, type KeeperPose } from './pose';
 
 type KeeperState =
   | { kind: 'ready' }
@@ -84,6 +84,11 @@ export class Keeper {
     const plan = planDive(shot, this.level);
     this.lastPlan = plan;
     this.state = { kind: 'waiting', plan, elapsed: 0 };
+  }
+
+  /** Distance (m) from a point in the plane of the goal line to the keeper's body and gloves. */
+  distanceTo(x: number, y: number): number {
+    return distanceToKeeper(this.pose, x, y);
   }
 
   /** True until the keeper has committed to a dive for this kick. */
