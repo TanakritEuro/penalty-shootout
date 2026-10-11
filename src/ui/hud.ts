@@ -2,6 +2,7 @@ import { TUNING } from '../config';
 import { SHOOTOUT_KICKS } from '../constants';
 import type { Shootout, Side } from '../match/shootout';
 import type { Team } from '../match/teams';
+import type { Contact } from '../shooting/spin';
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -17,6 +18,8 @@ export class Hud {
   private readonly powerFill = el<HTMLDivElement>('power-fill');
   private readonly powerLabel = el<HTMLDivElement>('power-label');
   private readonly powerDanger = el<HTMLDivElement>('power-danger');
+  private readonly contact = el<HTMLDivElement>('contact');
+  private readonly contactDot = el<HTMLDivElement>('contact-dot');
 
   constructor() {
     this.powerDanger.style.width = `${(1 - TUNING.shooting.overpowerThreshold) * 100}%`;
@@ -74,6 +77,14 @@ export class Hud {
     this.powerLabel.textContent = label;
     this.powerDanger.hidden = !showDanger;
     this.powerFill.style.width = `${value * 100}%`;
+  }
+
+  /** Show where the player will strike the ball (fractions of its radius), or hide with null. */
+  setContact(contact: Contact | null): void {
+    this.contact.classList.toggle('hidden', contact === null);
+    if (!contact) return;
+    this.contactDot.style.left = `${50 + contact.x * 50}%`;
+    this.contactDot.style.top = `${50 - contact.y * 50}%`;
   }
 
   /** `good`: news the player wants (their goal, their save), shown in gold. */

@@ -26,6 +26,21 @@ export const TUNING = {
     /** Random scatter (m, standard deviation) added at full overpower. */
     overpowerScatter: 0.35,
   },
+  spin: {
+    /**
+     * Spin (rad/s) from striking the ball at the very edge of the contact circle, at full
+     * power. Real curled shots reach roughly 8–10 revolutions a second (50–60 rad/s).
+     */
+    maxSpin: 55,
+    /** How far one W / A / S / D press moves the contact point (fraction of the ball's radius). */
+    nudge: 0.2,
+    /** Furthest the contact point can go from the centre (fraction of the radius). */
+    maxOffset: 0.8,
+    /** Fraction of the ball speed lost at maximum offset (it scales with offset squared). */
+    powerLoss: 0.1,
+    /** Extra random scatter (m, standard deviation) at maximum offset. */
+    extraScatter: 0.25,
+  },
   ball: {
     /** Scales the Magnus force: 1 is physical, higher bends shots more. */
     curveStrength: 1.0,
@@ -57,6 +72,9 @@ export const TUNING = {
     /** Height range (m) of the target. */
     minY: 0.2,
     maxY: 2.2,
+    /** Chance the computer curls its shot, and how far off-centre (0–1) it strikes it then. */
+    spinChance: 0.35,
+    maxContact: 0.6,
   },
   keeper: {
     /** Starting difficulty; keys 1 / 2 / 3 switch level during play. */
@@ -85,6 +103,11 @@ export const TUNING = {
     slowShotExtraTime: 0.3,
     /** When guessing, chance the keeper stays in the middle instead of picking a side. */
     guessCentreChance: 0.2,
+    /**
+     * How much of a curling shot's bend a reading keeper anticipates: 0 reads only the line
+     * it sets off on, 1 knows exactly where it will end up.
+     */
+    curveRead: 0.25,
     /** Targets within this distance of the centre (m) are covered standing or jumping. */
     centreBand: 0.55,
     /** Highest the keeper can jump off the ground (m). */

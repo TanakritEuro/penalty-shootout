@@ -27,11 +27,16 @@ export function scatterForPower(power: number): number {
 
 /**
  * Where the ball actually goes when the player aims at (x, y) on the goal line.
- * Overpowered shots drift high and away from the centre, plus some random scatter.
+ * Overpowered shots drift high and away from the centre, plus some random scatter;
+ * `extraScatter` (m) adds more, e.g. for an off-centre strike.
  */
-export function applyShotError(aim: { x: number; y: number }, power: number): { x: number; y: number } {
+export function applyShotError(
+  aim: { x: number; y: number },
+  power: number,
+  extraScatter = 0,
+): { x: number; y: number } {
   const over = overpower(power);
-  const scatter = scatterForPower(power);
+  const scatter = scatterForPower(power) + extraScatter;
   // Drift away from the side being aimed at; a dead-centre aim can slice either way.
   const side = Math.abs(aim.x) > 0.05 ? Math.sign(aim.x) : Math.random() < 0.5 ? -1 : 1;
   return {

@@ -3,12 +3,14 @@ import * as THREE from 'three';
 import { TUNING } from '../config';
 import { BALL_RADIUS, PENALTY_SPOT_Z } from '../constants';
 import type { PointerInput } from '../input/pointer';
+import type { SpinKeys } from '../input/spinKeys';
 import type { ColliderTag } from '../physics';
 import { aimFromPointer } from '../shooting/aim';
 import { chooseCpuShot, counterKeeper, type CpuShot } from '../shooting/cpuKicker';
 import { ShotTracker, type ShotOutcome } from '../shooting/outcome';
 import { applyShotError, powerFromCharge, speedForPower } from '../shooting/power';
-import { solveLaunch } from '../shooting/trajectory';
+import { CENTRE, contactScatter, contactSpeedFactor, nudgeContact, spinFromContact, type Contact } from '../shooting/spin';
+import { predictCrossing, solveLaunch } from '../shooting/trajectory';
 import type { Side } from './shootout';
 
 export type KickState =
@@ -21,8 +23,10 @@ export type KickState =
 
 /** A struck shot, as the keeper (and anything else watching) sees it. */
 export interface Shot {
-  /** Where the ball will cross the goal line, after any overpower error. */
+  /** Where the ball will cross the goal line, after any overpower error and curve. */
   target: { x: number; y: number };
+  /** Where it looks like it is going: the line it sets off on, before any curve. */
+  apparentTarget: { x: number; y: number };
   /** Seconds until it gets there. */
   flightTime: number;
   launchSpeed: number;
@@ -46,12 +50,15 @@ export class Kick {
   shooter: Side = 'player';
   /** Where the player is aiming on the goal line (x across, y up). */
   readonly aim = new THREE.Vector2(0, 1);
+  /** Where the player will strike the ball (W / A / S / D). Kept from kick to kick. */
+  contact: Contact = CENTRE;
   events: KickEvents = {};
 
   constructor(
     private readonly ball: RAPIER.RigidBody,
     private readonly input: PointerInput,
     private readonly camera: THREE.Camera,
+    private readonly spinKeys: SpinKeys,
   ) {
     this.placeBall();
   }
@@ -86,6 +93,7 @@ export class Kick {
     this.input.consumePress();
     this.input.consumeRelease();
     this.input.consumeCancel();
+    this.spinKeys.consume(); // W / A / S / D pressed between kicks don't count
     this.state = shooter === 'player' ? { kind: 'aiming' } : { kind: 'cpuRunUp', shot: chooseCpuShot(), elapsed: 0 };
   }
 
@@ -105,21 +113,26 @@ export class Kick {
     switch (s.kind) {
       case 'aiming':
         this.updateAim();
-        this.input.consumeRelease(); // a release left over from a skipped result
+        this.updateContact();
+        // A press starts charging. Its release may already be waiting (a tap faster than one
+        // step), so leave that for the charging state; any other release is left over from
+        // skipping the last result.
         if (this.input.consumePress()) this.state = { kind: 'charging', elapsed: 0 };
+        else this.input.consumeRelease();
         break;
 
       case 'charging':
         this.updateAim();
+        this.updateContact();
         s.elapsed += dt;
         if (this.input.consumeCancel()) this.state = { kind: 'aiming' };
-        else if (this.input.consumeRelease()) this.shoot(this.aim, powerFromCharge(s.elapsed));
+        else if (this.input.consumeRelease()) this.shoot(this.aim, powerFromCharge(s.elapsed), this.contact);
         break;
 
       case 'cpuRunUp':
         this.input.consumePress(); // clicks don't do anything while the computer shoots
         s.elapsed += dt;
-        if (s.elapsed >= TUNING.cpuKicker.runUpTime) this.shoot(s.shot.aim, s.shot.power);
+        if (s.elapsed >= TUNING.cpuKicker.runUpTime) this.shoot(s.shot.aim, s.shot.power, s.shot.contact);
         break;
 
       case 'ballInFlight': {
@@ -150,17 +163,28 @@ export class Kick {
     aimFromPointer(this.input.ndc, this.camera, this.aim);
   }
 
-  private shoot(aim: { x: number; y: number }, power: number): void {
-    const target = applyShotError(aim, power);
+  private updateContact(): void {
+    const n = this.spinKeys.consume();
+    if (n.x || n.y) this.contact = nudgeContact(this.contact, n.x * TUNING.spin.nudge, n.y * TUNING.spin.nudge);
+  }
+
+  private shoot(aim: { x: number; y: number }, power: number, contact: Contact): void {
+    const from = this.ball.translation();
+    const target = applyShotError(aim, power, contactScatter(contact));
+    const spin = spinFromContact(contact, power);
     const { velocity: v, flightTime } = solveLaunch(
-      this.ball.translation(),
+      from,
       { x: target.x, y: target.y, z: 0 },
-      speedForPower(power),
+      speedForPower(power) * contactSpeedFactor(contact),
+      spin,
     );
+    // The line it sets off on: where it would go without the curve.
+    const apparentTarget = predictCrossing(from, v) ?? target;
     this.ball.setLinvel(v, true);
+    this.ball.setAngvel(spin, true);
     const launchSpeed = Math.hypot(v.x, v.y, v.z);
     this.state = { kind: 'ballInFlight', tracker: new ShotTracker(), launchSpeed };
-    this.events.onShot?.({ target, flightTime, launchSpeed });
+    this.events.onShot?.({ target, apparentTarget: { x: apparentTarget.x, y: apparentTarget.y }, flightTime, launchSpeed });
   }
 
   private placeBall(): void {

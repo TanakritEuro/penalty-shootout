@@ -30,8 +30,12 @@ export function planDive(shot: Shot, level: KeeperLevelName): DivePlan {
   let x: number;
   let y: number;
   if (read) {
-    x = shot.target.x + gaussian() * L.readError;
-    y = shot.target.y + gaussian() * L.readError * 0.6;
+    // Reading the kicker gives the line the ball sets off on; a curling shot then bends
+    // away from it, and the keeper only allows for part of that.
+    const readX = shot.apparentTarget.x + (shot.target.x - shot.apparentTarget.x) * K.curveRead;
+    const readY = shot.apparentTarget.y + (shot.target.y - shot.apparentTarget.y) * K.curveRead;
+    x = readX + gaussian() * L.readError;
+    y = readY + gaussian() * L.readError * 0.6;
   } else if (Math.random() < K.guessCentreChance) {
     x = 0;
     y = 0.3 + Math.random() * 1.9;
