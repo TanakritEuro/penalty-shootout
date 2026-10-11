@@ -12,6 +12,7 @@ TypeScript and Vite. No backend.
 - `npm run dev` — dev server at http://localhost:5173 (hot reload)
 - `npm run build` — typecheck + production build into `dist/`
 - `npm run typecheck` — types only
+- `npm test` — Vitest: shootout rules, flight solver, outcomes, keeper balance (headless physics)
 
 Requires Node 20.19+ or 22.12+ (Vite 8).
 
@@ -109,7 +110,10 @@ characters), put them under `public/`, and record each one with its licence in
 
 ## Verifying changes
 
-- Run `npm run build` after every change; it must pass with no type errors.
+- Run `npm run build` and `npm test` after every change; both must pass. Tests run
+  headless Rapier (`tests/helpers.ts` fires real shots); statistical ones seed `Math.random`.
+- CI (`.github/workflows/deploy.yml`) runs both on every push and pull request, and deploys
+  `main` to GitHub Pages.
 - For visual or gameplay changes, run the dev server and check it in a browser
   (screenshot if possible) before calling something done. Check the console for errors.
 - Game feel (power curve, keeper difficulty, camera) can't be judged by reading code.
