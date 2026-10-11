@@ -12,6 +12,8 @@ export interface MenuEvents {
   onPlay: (choice: MenuChoice) => void;
   /** Close the menu and carry on with the match in progress. */
   onResume: () => void;
+  /** Sound switched on or off. */
+  onSound: (muted: boolean) => void;
 }
 
 const LEVELS: readonly KeeperLevelName[] = ['easy', 'normal', 'hard'];
@@ -25,13 +27,16 @@ export class Menu {
   private readonly resume: HTMLButtonElement;
   private readonly teamButtons: Record<Side, HTMLButtonElement[]> = { player: [], cpu: [] };
   private readonly levelButtons: HTMLButtonElement[] = [];
+  private readonly soundButton: HTMLButtonElement;
+  private muted: boolean;
   private choice: MenuChoice;
 
   constructor(
-    initial: MenuChoice,
+    initial: MenuChoice & { muted: boolean },
     private readonly events: MenuEvents,
   ) {
     this.choice = { teams: { ...initial.teams }, level: initial.level };
+    this.muted = initial.muted;
 
     const panel = el('div', 'menu-panel');
     const title = el('h1');
@@ -68,6 +73,16 @@ export class Menu {
     levelRow.append(levelLabel, seg);
     panel.append(levelRow);
 
+    const soundRow = el('div', 'menu-row');
+    const soundLabel = el('div', 'menu-label');
+    soundLabel.textContent = 'Sound (M)';
+    this.soundButton = button('menu-sound', () => {
+      this.setMuted(!this.muted);
+      this.events.onSound(this.muted);
+    });
+    soundRow.append(soundLabel, this.soundButton);
+    panel.append(soundRow);
+
     const actions = el('div', 'menu-actions');
     this.resume = button('menu-resume', () => this.events.onResume());
     this.resume.textContent = 'Resume';
@@ -100,6 +115,12 @@ export class Menu {
     this.root.hidden = true;
   }
 
+  /** Reflect a mute change made elsewhere (the M key). */
+  setMuted(muted: boolean): void {
+    this.muted = muted;
+    this.refresh();
+  }
+
   private pickTeam(side: Side, team: Team): void {
     const other: Side = side === 'player' ? 'cpu' : 'player';
     // Picking the other side's team swaps them, so the two always differ.
@@ -118,6 +139,8 @@ export class Menu {
       this.teamButtons[side].forEach((b, i) => b.classList.toggle('selected', TEAM_LIST[i] === this.choice.teams[side]));
     }
     this.levelButtons.forEach((b, i) => b.classList.toggle('selected', LEVELS[i] === this.choice.level));
+    this.soundButton.textContent = this.muted ? 'Off' : 'On';
+    this.soundButton.classList.toggle('selected', !this.muted);
   }
 }
 

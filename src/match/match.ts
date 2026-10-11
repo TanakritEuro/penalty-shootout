@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Sound } from '../audio/sound';
 import type { Director } from '../camera/director';
 import { TUNING } from '../config';
 import { GOAL_HEIGHT, GOAL_WIDTH } from '../constants';
@@ -40,9 +41,11 @@ export class Match {
     private readonly camera: THREE.Camera,
     private readonly hud: Hud,
     private readonly director: Director,
+    private readonly sound: Sound,
   ) {
     kick.events = {
       onShot: (shot) => {
+        this.sound.kick(shot.launchSpeed);
         this.hud.setStatus('');
         this.keeper.react(shot);
         this.director.onShot(shot);
@@ -53,7 +56,10 @@ export class Match {
         let detail = `${TEAMS[shooter].name} · ${Math.round(launchSpeed * 3.6)} km/h`;
         if (shooter === 'cpu' && scored && this.wentEarly) detail += ' · you went too early';
         // Gold for whatever is good news for the player: their goals and their saves.
-        this.hud.showResult(describeOutcome(outcome), detail, shooter === 'player' ? scored : !scored);
+        const good = shooter === 'player' ? scored : !scored;
+        this.hud.showResult(describeOutcome(outcome), detail, good);
+        // A home crowd: it cheers the player's goals and saves and groans at the rest.
+        this.sound.react(outcome.kind === 'woodwork' ? 'ooh' : good ? 'cheer' : 'groan');
       },
       onDone: (outcome) => this.kickDone(outcome.kind === 'goal'),
     };
@@ -149,6 +155,7 @@ export class Match {
     this.keeperMesh.setShirt(keeperShirt(TEAMS[otherSide(shooter)], TEAMS[shooter]));
     this.keys.clear();
     this.wentEarly = false;
+    this.sound.whistle();
     this.kick.start(shooter);
     this.hud.setScoreboard(this.shootout, TEAMS);
     const prefix = this.shootout.suddenDeath ? 'Sudden death · ' : '';
@@ -170,6 +177,7 @@ export class Match {
       return;
     }
     this.state = { kind: 'finished', winner, elapsed: 0 };
+    this.sound.react(winner === 'player' ? 'roar' : 'groan');
     this.kick.stop();
     this.keeper.reset();
     const score = `${this.shootout.goals('player')}–${this.shootout.goals('cpu')}`;

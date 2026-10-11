@@ -1,6 +1,7 @@
 // Entry point: builds the scene and physics, then runs the game loop.
 // Physics and game logic run on a fixed step; rendering runs once per animation frame.
 
+import { Sound } from './audio/sound';
 import { Director } from './camera/director';
 import { Kickers } from './characters/kicker';
 import type { KeeperLevelName } from './config';
@@ -36,17 +37,19 @@ const reticle = new Reticle();
 scene.add(reticle.object);
 
 const kick = new Kick(ball, input, camera, new SpinKeys());
+const sound = new Sound();
 const director = new Director(camera);
-const match = new Match(kick, keeper, keeperMesh, input, new KeeperKeys(), camera, hud, director);
+const match = new Match(kick, keeper, keeperMesh, input, new KeeperKeys(), camera, hud, director, sound);
 
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
 
 // The menu starts the game and pauses it (Esc).
 let matchStarted = false;
 const menu = new Menu(
-  { teams: { ...TEAMS }, level: keeper.level },
+  { teams: { ...TEAMS }, level: keeper.level, muted: sound.isMuted },
   {
     onPlay: (choice) => {
+      sound.unlock(); // inside a click: browsers only start audio from a user gesture
       TEAMS.player = choice.teams.player;
       TEAMS.cpu = choice.teams.cpu;
       keeper.level = choice.level;
@@ -56,6 +59,7 @@ const menu = new Menu(
       menu.close();
     },
     onResume: () => menu.close(),
+    onSound: (muted) => sound.setMuted(muted),
   },
 );
 
@@ -67,6 +71,10 @@ window.addEventListener('keydown', (e) => {
   }
   if (menu.isOpen) return;
   if (e.code === 'KeyR') match.restart();
+  if (e.code === 'KeyM') {
+    sound.setMuted(!sound.isMuted);
+    menu.setMuted(sound.isMuted);
+  }
   const level = LEVEL_KEYS[e.code];
   if (level) {
     keeper.level = level;
@@ -85,7 +93,12 @@ function fixedStep(): void {
     if (!started) return;
     const tag = tags.get(h1) ?? tags.get(h2);
     if (tag) kick.onBallContact(tag);
-    if (tag === 'net') net.hit(ball.translation(), speedIn);
+    if (tag === 'net') {
+      net.hit(ball.translation(), speedIn);
+      sound.net(speedIn);
+    }
+    if (tag === 'post' || tag === 'bar') sound.woodwork(speedIn);
+    if (tag === 'keeper') sound.parry(speedIn);
   });
   match.step(PHYSICS_STEP);
   net.step(PHYSICS_STEP);
