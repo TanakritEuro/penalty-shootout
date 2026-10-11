@@ -54,6 +54,15 @@ a short `striking` stride before the ball goes. On CPU kicks the director uses a
 behind the net and the CPU kicker shows a hip/lean tell (`tellHonesty`). `?timescale=0.1`
 slows the whole game for checking animation.
 
+Milestone 7 (polish) is in: a start/pause menu (`ui/menu.ts`) picks both teams from six
+invented ones in `match/teams.ts` (`TEAMS` is the current matchup) and the CPU keeper's
+level. All audio is synthesised with Web Audio in `audio/sound.ts` (crowd bed and
+reactions, whistle, kick, woodwork, net, parry); it starts on the Kick off click.
+`replay/` records each kick's on-screen transforms and plays the last one back in slow
+motion from a side camera (Space). Touch works through pointer events; the HUD compacts on
+phone-sized screens and the director widens the field of view on narrow ones (`fitFov`).
+All seven roadmap milestones are done; what's left is playtesting and tuning.
+
 ## Layout
 
 - `src/constants.ts` — real-world dimensions and physics constants. Use these, never magic numbers.
@@ -71,9 +80,10 @@ slows the whole game for checking animation.
   pose maths and reach limit (`pose.ts`), rigged mesh posed from the physics (`mesh.ts`).
 - `src/characters/` — procedural humanoid rig (`rig.ts`) and the animated kickers (`kicker.ts`).
 - `src/camera/director.ts` — main / keeper's-eye cameras, close-call cuts and slow motion.
-- `src/ui/hud.ts` — DOM HUD (power meter, spin widget, result banner, scoreboard, keeper level).
-
-As the game grows, add modules such as `audio/`.
+- `src/ui/hud.ts` — DOM HUD (power meter, spin widget, result banner, scoreboard, replay button).
+- `src/ui/menu.ts` — start / pause menu: teams, CPU keeper level, sound.
+- `src/audio/sound.ts` — synthesised crowd and sound effects.
+- `src/replay/` — per-kick recorder and slow-motion replay playback.
 
 ## Conventions
 
