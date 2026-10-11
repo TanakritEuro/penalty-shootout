@@ -18,7 +18,9 @@ shootout against Copper Vale, then sudden death. Click to skip a
 result, **R** to restart the shootout, **1 / 2 / 3** to set the
 CPU keeper to easy / normal / hard.
 
-**In goal** (on the CPU's kicks): the bottom meter shows the kicker's run-up. Dive with the
+**In goal** (on the CPU's kicks) the view switches to behind your goal. Watch the kicker's run-up:
+late on, their hips open and they lean towards the side they mean to shoot, though not
+every time. The bottom meter shows the run-up too. Dive with the
 arrow keys (← / → for a side, plus ↑ / ↓ for high / low; ↑ alone jumps, ↓ alone gets down)
 or click where you want to dive. Go as the ball is struck: dive too early and the kicker
 puts it the other way.

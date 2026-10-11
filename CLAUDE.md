@@ -34,8 +34,7 @@ Milestone 4 (player as keeper) is in: on the CPU's kicks the player keeps goal, 
 with the arrow keys (`input/keeperKeys.ts`) or a click under a green reticle. The bottom
 meter shows the CPU's run-up; diving more than `earlyCommitWindow` before the strike makes
 the kicker go the other way. Dives steer onto a ball within `assistRadius`. Tuning is in
-`TUNING.playerKeeper`. There is nothing to read the kicker by yet, so saves are guesses
-until Milestone 6 adds a kicker with a run-up animation.
+`TUNING.playerKeeper`.
 
 Milestone 5 (curve and feel) is in: quadratic drag and Magnus lift act on the ball every
 step (`shooting/aero.ts`). The launch solver (`shooting/trajectory.ts`) flies a ghost ball
@@ -44,6 +43,16 @@ through it rather than with closed-form maths. W / A / S / D set the contact poi
 (`shooting/spin.ts`); the AI keeper reads the line the ball sets off on (`curveRead`).
 `camera/director.ts` cuts to a goal-line camera in slow motion on close calls, and
 `net.ts` ripples the net on impact.
+
+Milestone 6 (characters) is in, procedurally: `characters/rig.ts` is a humanoid built in
+code (joint hierarchy, low-poly limbs, kit colours, poses). There are no downloaded models;
+a real `.glb` could replace the rig behind the same pose-driven interface. The keeper mesh
+is posed from the physics pose (gloves sit on the glove colliders). `characters/kicker.ts`
+derives the kicker's run-up, strike, follow-through and reaction from the Kick (`approach`,
+`sinceStrike`), so the boot meets the ball on the launch step; the player's release starts
+a short `striking` stride before the ball goes. On CPU kicks the director uses a camera
+behind the net and the CPU kicker shows a hip/lean tell (`tellHonesty`). `?timescale=0.1`
+slows the whole game for checking animation.
 
 ## Layout
 
@@ -59,8 +68,9 @@ through it rather than with closed-form maths. W / A / S / D set the contact poi
 - `src/match/` — `kick.ts` (one penalty's state machine, player or CPU), `shootout.ts` (scoring
   rules), `match.ts` (whole-shootout flow), `teams.ts` (invented teams and colours).
 - `src/keeper/` — keeper body and state machine (`keeper.ts`), dive decision (`brain.ts`),
-  pose maths and reach limit (`pose.ts`), placeholder mesh (`mesh.ts`).
-- `src/camera/director.ts` — close-call camera cuts and slow motion (scales game time).
+  pose maths and reach limit (`pose.ts`), rigged mesh posed from the physics (`mesh.ts`).
+- `src/characters/` — procedural humanoid rig (`rig.ts`) and the animated kickers (`kicker.ts`).
+- `src/camera/director.ts` — main / keeper's-eye cameras, close-call cuts and slow motion.
 - `src/ui/hud.ts` — DOM HUD (power meter, spin widget, result banner, scoreboard, keeper level).
 
 As the game grows, add modules such as `audio/`.
