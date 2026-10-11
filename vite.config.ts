@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // Relative asset paths, so the build works at any URL (e.g. GitHub Pages' /penalty-shootout/).
+  base: './',
   server: {
     port: 5173,
     open: true,
