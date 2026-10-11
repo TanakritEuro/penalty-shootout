@@ -20,7 +20,7 @@ import { Hud } from './ui/hud';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 
-const { renderer, scene, camera, ball: ballMesh } = createScene(canvas);
+const { renderer, scene, camera, ball: ballMesh, net } = createScene(canvas);
 const { world, ball, events, tags } = await createPhysics();
 const keeper = new Keeper(world, tags);
 const keeperMesh = new KeeperMesh(keeper);
@@ -48,13 +48,18 @@ window.addEventListener('keydown', (e) => {
 function fixedStep(): void {
   keeper.step(PHYSICS_STEP);
   applyAero(ball);
+  // Speed going into the step: a net contact has already soaked most of it up afterwards.
+  const v = ball.linvel();
+  const speedIn = Math.hypot(v.x, v.y, v.z);
   world.step(events);
   events.drainCollisionEvents((h1, h2, started) => {
     if (!started) return;
     const tag = tags.get(h1) ?? tags.get(h2);
     if (tag) kick.onBallContact(tag);
+    if (tag === 'net') net.hit(ball.translation(), speedIn);
   });
   match.step(PHYSICS_STEP);
+  net.step(PHYSICS_STEP);
 }
 
 function render(): void {

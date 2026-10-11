@@ -140,6 +140,20 @@ export const TUNING = {
      */
     assistRadius: 1.2,
   },
+  net: {
+    /** Ripple strength is ball speed / referenceSpeed (m/s), capped at maxStrength. */
+    referenceSpeed: 22,
+    maxStrength: 1.3,
+    /** Peak displacement (m) at strength 1, and how much of it is a steady outward bulge. */
+    amplitude: 0.16,
+    bulge: 0.9,
+    /** Size of the disturbed patch (m) and how fast it settles (s). */
+    spread: 0.8,
+    decay: 0.45,
+    /** Wobble: angular frequency (rad/s) and wavenumber (rad/m) of the ripple. */
+    frequency: 16,
+    wavenumber: 5,
+  },
   director: {
     /** Slow motion and a camera cut fire when the ball gets this close to the goal line (m)... */
     triggerDistance: 2.2,

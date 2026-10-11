@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { TUNING } from './config';
+import { Net } from './net';
 import {
   BALL_RADIUS,
-  GOAL_DEPTH,
   GOAL_HEIGHT,
   GOAL_WIDTH,
   PENALTY_AREA_DEPTH,
@@ -19,6 +19,7 @@ export interface GameScene {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   ball: THREE.Mesh;
+  net: Net;
 }
 
 export function createScene(canvas: HTMLCanvasElement): GameScene {
@@ -42,6 +43,8 @@ export function createScene(canvas: HTMLCanvasElement): GameScene {
   scene.add(createPitch());
   scene.add(createMarkings());
   scene.add(createGoal());
+  const net = new Net();
+  scene.add(net.object);
 
   const ball = new THREE.Mesh(
     new THREE.SphereGeometry(BALL_RADIUS, 32, 16),
@@ -56,7 +59,7 @@ export function createScene(canvas: HTMLCanvasElement): GameScene {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  return { renderer, scene, camera, ball };
+  return { renderer, scene, camera, ball, net };
 }
 
 function addLights(scene: THREE.Scene): void {
@@ -175,29 +178,6 @@ function createGoal(): THREE.Group {
   bar.position.set(0, GOAL_HEIGHT + POST_RADIUS, 0);
   bar.castShadow = true;
   group.add(bar);
-
-  // Net: simple wireframe panels (placeholder; replace with a cloth/ripple effect later).
-  const netMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.35,
-  });
-  const back = new THREE.Mesh(new THREE.PlaneGeometry(halfW * 2, topY, 36, 12), netMat);
-  back.position.set(0, topY / 2, -GOAL_DEPTH);
-  group.add(back);
-
-  const roof = new THREE.Mesh(new THREE.PlaneGeometry(halfW * 2, GOAL_DEPTH, 36, 10), netMat);
-  roof.rotation.x = Math.PI / 2;
-  roof.position.set(0, topY, -GOAL_DEPTH / 2);
-  group.add(roof);
-
-  for (const x of [-halfW, halfW]) {
-    const side = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_DEPTH, topY, 10, 12), netMat);
-    side.rotation.y = Math.PI / 2;
-    side.position.set(x, topY / 2, -GOAL_DEPTH / 2);
-    group.add(side);
-  }
 
   return group;
 }
