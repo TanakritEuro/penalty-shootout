@@ -57,8 +57,11 @@ export class Kickers {
     const dz = end.z - start.z;
     const length = Math.hypot(dx, dz);
     const pathYaw = Math.atan2(-dx, -dz);
-    // At the strike the hips open towards the tell side (yaw −θ turns towards +x).
-    const strikeYaw = -this.tell * 0.35;
+    // Late in the run-up the hips open and the body leans towards the tell side: the cue a
+    // keeper reads (yaw −θ turns towards +x).
+    const C = TUNING.cpuKicker;
+    const tellAmount = this.tell * smoothstep(C.tellFrom, C.tellFull, since === null ? a : 1);
+    const strikeYaw = -tellAmount * C.tellYaw;
     const turn = smoothstep(0.55, 1, a);
     let yaw = (a === 0 && since === null ? pathYaw * 0.6 : pathYaw) * (1 - turn) + strikeYaw * turn;
     let x = start.x + dx * a;
@@ -89,6 +92,9 @@ export class Kickers {
 
     rig.root.position.set(x, 0, z);
     rig.root.rotation.y = yaw;
+    // The tell's lean: rolling the spine by −θ tips the upper body towards +x.
+    const spine = pose.joints.spine ?? {};
+    pose.joints.spine = { ...spine, z: (spine.z ?? 0) - tellAmount * C.tellLean };
     rig.setPose(pose);
   }
 }

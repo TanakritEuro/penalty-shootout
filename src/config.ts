@@ -95,6 +95,12 @@ export const TUNING = {
      * a keeper can read. This is the chance it points the way the ball really goes.
      */
     tellHonesty: 0.75,
+    /** How far the hips turn (rad) and the body leans (rad) towards the tell side... */
+    tellYaw: 0.45,
+    tellLean: 0.15,
+    /** ...growing from this fraction of the run-up to full strength at the second. */
+    tellFrom: 0.55,
+    tellFull: 0.85,
   },
   keeper: {
     /** Starting difficulty; keys 1 / 2 / 3 switch level during play. */
@@ -191,6 +197,13 @@ export const TUNING = {
      * across the goal mouth. x is mirrored to that side.
      */
     cutCamera: { x: 6.5, y: 1.1, z: 3.2, lookX: 1.6, lookY: 1.0, lookZ: 0, fov: 42 },
+    /**
+     * On the CPU's kicks the player is in goal: a camera well behind the net, below the bar
+     * and off to one side so it sees past the keeper to the kicker (the run-up has to be
+     * readable) while the whole goal mouth stays in view for mouse dives.
+     */
+    keeperCamera: { x: 1.5, y: 1.7, z: -5.5, lookX: -0.4, lookY: 0.4, lookZ: 11, fov: 40 },
+    useKeeperCamera: true,
   },
   camera: {
     /** Vertical field of view (degrees). Narrower makes the goal bigger but crops the ball. */

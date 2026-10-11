@@ -136,8 +136,9 @@ export class Kick {
     }
   }
 
-  /** Abandon the kick in progress and leave the ball on the spot, idle. */
-  stop(): void {
+  /** Abandon the kick in progress and leave the ball on the spot, idle, with `shooter` waiting. */
+  stop(shooter: Side = this.shooter): void {
+    this.shooter = shooter;
     this.placeBall();
     this.sinceStrike = null;
     this.state = { kind: 'nextKick' };

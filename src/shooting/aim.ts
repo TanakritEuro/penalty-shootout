@@ -36,6 +36,8 @@ export class Reticle {
     opacity: 0.9,
     depthTest: false,
     depthWrite: false,
+    // Seen from behind the goal too, when the player is in goal.
+    side: THREE.DoubleSide,
   });
   private readonly ring: THREE.Mesh;
   /** Green while picking where to dive as keeper, white while shooting. */
@@ -67,6 +69,8 @@ export class Reticle {
     this.object.position.x = aim.x;
     this.object.position.y = aim.y;
     this.ring.scale.setScalar(A.reticleRadius + spread * 2);
+    // The keeper's-eye camera is much nearer the goal line, so draw it smaller there.
+    this.object.scale.setScalar(this.keeperMode ? 0.45 : 1);
     this.material.color.copy(this.keeperMode ? KEEPER : CALM).lerp(WILD, wildness);
   }
 

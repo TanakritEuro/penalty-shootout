@@ -11,9 +11,11 @@ type SlowMo =
   | { phase: 'out'; t: number };
 
 /**
- * Directs the presentation of each kick: the broadcast camera behind the kicker by
- * default, and on a close call (the ball about to pass near the woodwork or the keeper's
- * gloves) a cut to a low goal-line camera with a moment of slow motion.
+ * Directs the presentation of each kick: the broadcast camera behind the kicker on the
+ * player's kicks, a camera behind the keeper looking out at the kicker on the CPU's (the
+ * player is in goal and needs to read the run-up), and on a close call (the ball about
+ * to pass near the woodwork or the keeper's gloves) a cut to a low goal-line camera with
+ * a moment of slow motion.
  *
  * `timeScale` is applied by the game loop to how much game time each frame advances.
  */
@@ -33,16 +35,30 @@ export class Director {
     return this.triggered;
   }
 
-  /** A new kick: back to the broadcast camera at full speed. */
-  reset(): void {
+  /** A new kick: back to full speed, on the broadcast camera or the keeper's-eye one. */
+  reset(view: 'main' | 'keeper' = 'main'): void {
     this.shot = null;
     this.triggered = false;
     this.slowMo = null;
     this.timeScale = 1;
-    this.camera.position.copy(this.main.position);
-    this.camera.quaternion.copy(this.main.quaternion);
-    this.setFov(this.main.fov);
+    this.keeperView = view === 'keeper' && TUNING.director.useKeeperCamera;
+    if (this.keeperView) {
+      const C = TUNING.director.keeperCamera;
+      this.camera.position.set(C.x, C.y, C.z);
+      this.camera.lookAt(C.lookX, C.lookY, C.lookZ);
+      this.setFov(C.fov);
+    } else {
+      this.camera.position.copy(this.main.position);
+      this.camera.quaternion.copy(this.main.quaternion);
+      this.setFov(this.main.fov);
+    }
   }
+
+  /**
+   * True while looking out from behind the keeper (the player is in goal): screen left is
+   * then world +x, the opposite of the main camera.
+   */
+  keeperView = false;
 
   onShot(shot: Shot): void {
     this.shot = shot;

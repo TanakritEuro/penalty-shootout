@@ -112,7 +112,10 @@ export class Match {
     this.keeperAim.x = THREE.MathUtils.clamp(this.keeperAim.x, -GOAL_WIDTH / 2, GOAL_WIDTH / 2);
     this.keeperAim.y = Math.min(this.keeperAim.y, GOAL_HEIGHT);
 
-    const target = this.keys.consumeDive(dt) ?? (this.input.consumePress() ? { x: this.keeperAim.x, y: this.keeperAim.y } : null);
+    const keyDive = this.keys.consumeDive(dt);
+    // Arrow keys follow the screen: looking out from behind the keeper, screen left is +x.
+    if (keyDive && this.director.keeperView) keyDive.x = -keyDive.x;
+    const target = keyDive ?? (this.input.consumePress() ? { x: this.keeperAim.x, y: this.keeperAim.y } : null);
     if (!target) return;
     this.keeper.playerDive(target.x, target.y);
     this.wentEarly = this.kick.keeperCommitted(target.x);
@@ -121,7 +124,7 @@ export class Match {
   private newShootout(): Shootout {
     const first: Side = Math.random() < 0.5 ? 'player' : 'cpu';
     const shootout = new Shootout(first);
-    this.kick.stop();
+    this.kick.stop(first);
     this.keeper.reset();
     this.director.reset();
     this.keeperMesh.setShirt(TEAMS[otherSide(first)].keeperShirt);
@@ -140,7 +143,7 @@ export class Match {
   private startKick(): void {
     const shooter = this.shootout.next;
     this.keeper.reset();
-    this.director.reset();
+    this.director.reset(shooter === 'cpu' ? 'keeper' : 'main');
     // The keeper in goal belongs to the side that isn't shooting; on the CPU's kicks that's you.
     this.keeper.controlledByPlayer = shooter === 'cpu';
     this.keeperMesh.setShirt(TEAMS[otherSide(shooter)].keeperShirt);
