@@ -32,4 +32,9 @@ puts it the other way.
 **On a phone or tablet** (landscape works best): touch and drag to aim, hold to power up,
 lift to shoot; tap the little ball to set spin; tap in the goal to dive; ☰ opens the menu.
 
+Play it online at https://tanakriteuro.github.io/penalty-shootout/ (every push to `main` redeploys).
+
+**Debugging:** add `?debug` to the URL for **R** (restart the shootout) and **1 / 2 / 3** (CPU
+keeper level), and `?timescale=0.1` to run the whole game at a tenth of the speed.
+
 See `CLAUDE.md` for the architecture, conventions and roadmap.

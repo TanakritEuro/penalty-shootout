@@ -44,6 +44,10 @@ const sound = new Sound();
 const director = new Director(camera);
 const match = new Match(kick, keeper, keeperMesh, input, new KeeperKeys(), camera, hud, director, sound);
 
+// Debug aids, off unless the URL has ?debug: R restarts the shootout, 1 / 2 / 3 set the CPU
+// keeper level. (?timescale=0.1 slows the game; see the loop below.)
+const params = new URLSearchParams(location.search);
+const DEBUG = params.has('debug');
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
 
 // The menu starts the game and pauses it (Esc).
@@ -56,7 +60,7 @@ const menu = new Menu(
       TEAMS.player = choice.teams.player;
       TEAMS.cpu = choice.teams.cpu;
       keeper.level = choice.level;
-      hud.setKeeperLevel(choice.level);
+      hud.setKeeperLevel(choice.level, DEBUG);
       match.restart();
       matchStarted = true;
       menu.close();
@@ -87,7 +91,7 @@ window.addEventListener('keydown', (e) => {
   const level = LEVEL_KEYS[e.code];
   if (level) {
     keeper.level = level;
-    hud.setKeeperLevel(level);
+    hud.setKeeperLevel(level, DEBUG);
   }
 });
 
@@ -203,6 +207,7 @@ function frame(now: number): void {
 }
 
 window.addEventListener('resize', () => director.refit());
-hud.setKeeperLevel(keeper.level);
+hud.setKeeperLevel(keeper.level, DEBUG);
+document.getElementById('loading')?.remove();
 menu.open(false);
 requestAnimationFrame(frame);

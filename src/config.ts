@@ -171,10 +171,10 @@ export const TUNING = {
     referenceSpeed: 22,
     maxStrength: 1.3,
     /** Peak displacement (m) at strength 1, and how much of it is a steady outward bulge. */
-    amplitude: 0.16,
+    amplitude: 0.24,
     bulge: 0.9,
     /** Size of the disturbed patch (m) and how fast it settles (s). */
-    spread: 0.8,
+    spread: 0.9,
     decay: 0.45,
     /** Wobble: angular frequency (rad/s) and wavenumber (rad/m) of the ripple. */
     frequency: 16,

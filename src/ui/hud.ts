@@ -57,10 +57,11 @@ export class Hud {
     this.scoreboard.replaceChildren(...rows);
   }
 
-  setKeeperLevel(level: string): void {
+  /** Show the CPU keeper's level; with `debugKeys`, also the keys that change it. */
+  setKeeperLevel(level: string, debugKeys: boolean): void {
     const keys = document.createElement('span');
     keys.className = 'keys-only';
-    keys.textContent = ' · 1 / 2 / 3 to change';
+    keys.textContent = debugKeys ? ' · 1 / 2 / 3 to change' : '';
     this.level.replaceChildren(`CPU keeper: ${level[0].toUpperCase()}${level.slice(1)}`, keys);
   }
 
