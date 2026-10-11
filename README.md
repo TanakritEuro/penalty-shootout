@@ -19,8 +19,7 @@ meter): hit it off-centre to curl it, at the cost of some pace and accuracy. Cur
 from the keeper fools them; bending it in towards them doesn't.
 
 **Other keys:** **Space** replays the last kick in slow motion, **Esc** opens the menu,
-**M** mutes, **R** restarts the shootout, **1 / 2 / 3** set the CPU keeper to easy / normal /
-hard. Click to skip a result.
+**M** mutes. Click to skip a result.
 
 **In goal** (on the CPU's kicks) the view switches to behind your goal. Watch the kicker's run-up:
 late on, their hips open and they lean towards the side they mean to shoot, though not
