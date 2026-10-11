@@ -63,10 +63,9 @@ export class Director {
 
   private saved: { position: THREE.Vector3; quaternion: THREE.Quaternion; fov: number } | null = null;
 
-  /** Switch to the replay camera, remembering the current view. */
-  beginReplay(): void {
+  /** Switch to the replay camera on `side` (−1 / +1) of the goal, remembering the current view. */
+  beginReplay(side: number): void {
     const C = TUNING.director.replayCamera;
-    const side = this.shot && this.shot.target.x < 0 ? -1 : 1;
     this.saved = { position: this.camera.position.clone(), quaternion: this.camera.quaternion.clone(), fov: this.baseFov };
     this.camera.position.set(side * C.x, C.y, C.z);
     this.camera.lookAt(side * C.lookX, C.lookY, C.lookZ);

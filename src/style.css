@@ -361,6 +361,10 @@ body {
 
 /* Replays */
 #replay-tag {
+  max-width: 90vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   position: absolute;
   top: 18px;
   left: 50%;
@@ -390,7 +394,7 @@ body {
   cursor: pointer;
 }
 
-#replay-btn span {
+#replay-btn .keys-only {
   font-weight: 500;
   opacity: 0.7;
 }

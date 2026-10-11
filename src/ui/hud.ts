@@ -23,6 +23,7 @@ export class Hud {
   private readonly root = el<HTMLDivElement>('hud');
   private readonly replayTag = el<HTMLDivElement>('replay-tag');
   private readonly replayButton = el<HTMLButtonElement>('replay-btn');
+  private readonly replayLabel = el<HTMLSpanElement>('replay-label');
 
   constructor() {
     this.powerDanger.style.width = `${(1 - TUNING.shooting.overpowerThreshold) * 100}%`;
@@ -114,14 +115,20 @@ export class Hud {
     this.contactDot.style.top = `${50 - contact.y * 50}%`;
   }
 
-  /**
-   * Replay controls: 'available' offers the Replay button, 'playing' shows the REPLAY
-   * badge and hides the live HUD, null hides both.
-   */
-  setReplay(state: 'available' | 'playing' | null): void {
-    this.replayButton.hidden = state !== 'available';
-    this.replayTag.hidden = state !== 'playing';
-    this.root.classList.toggle('replaying', state === 'playing');
+  /** Offer a replay of the last kick, the shootout's highlights, or nothing. */
+  setReplay(offer: 'replay' | 'highlights' | null): void {
+    this.replayButton.hidden = offer === null;
+    if (offer) this.replayLabel.textContent = offer === 'replay' ? '▶ Replay' : '▶ Highlights';
+    this.replayTag.hidden = true;
+    this.root.classList.remove('replaying');
+  }
+
+  /** A replay is playing: show the REPLAY badge with `caption` and hide the live HUD. */
+  setReplaying(caption: string): void {
+    this.replayButton.hidden = true;
+    this.replayTag.hidden = false;
+    this.replayTag.textContent = caption ? `▶ REPLAY · ${caption}` : '▶ REPLAY';
+    this.root.classList.add('replaying');
   }
 
   onReplayClick(handler: () => void): void {

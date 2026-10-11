@@ -4,7 +4,7 @@
 import { Sound } from './audio/sound';
 import { Director } from './camera/director';
 import { Kickers } from './characters/kicker';
-import type { KeeperLevelName } from './config';
+import { TUNING, type KeeperLevelName } from './config';
 import { PHYSICS_STEP } from './constants';
 import { KeeperKeys } from './input/keeperKeys';
 import { PointerInput } from './input/pointer';
@@ -14,15 +14,17 @@ import { KeeperMesh } from './keeper/mesh';
 import { Kick } from './match/kick';
 import { Match } from './match/match';
 import { Session } from './match/session';
+import type { Shootout } from './match/shootout';
 import { Stats } from './match/stats';
 import { TEAMS } from './match/teams';
 import { createPhysics } from './physics';
 import { createScene } from './scene';
 import { applyAero } from './shooting/aero';
 import { Reticle } from './shooting/aim';
+import { describeOutcome } from './shooting/outcome';
 import { overpower, scatterForPower } from './shooting/power';
 import { clampContact } from './shooting/spin';
-import { Recorder } from './replay/recorder';
+import { Recorder, type Clip } from './replay/recorder';
 import { Replay } from './replay/replay';
 import { Hud } from './ui/hud';
 import { Menu } from './ui/menu';
@@ -135,14 +137,36 @@ function fixedStep(): void {
   net.step(PHYSICS_STEP);
 }
 
-// Replays: record each kick from its start; play the last one back on request.
+// Replays: record each kick; replay the last one, or every kick as highlights at the end.
 const recorder = new Recorder([ballMesh, keeperMesh.object, kickers.object], net);
 const replay = new Replay(recorder, director, net);
 let lastKickState = kick.state.kind;
+/** One clip per kick of the current shootout, for the highlights. */
+let highlights: Clip[] = [];
+let highlightsOf: Shootout | null = null;
+/** Caption for the kick being recorded, set when its result comes in. */
+let caption = '';
+
+/** What the replay button can do right now. */
+function replayOffer(): 'replay' | 'highlights' | null {
+  if (match.state.kind === 'finished' && highlights.length > 0) return 'highlights';
+  if (kick.state.kind === 'result') return 'replay';
+  return null;
+}
 
 function toggleReplay(): void {
-  if (replay.active) replay.finish();
-  else if (kick.state.kind === 'result') replay.begin();
+  if (replay.active) {
+    replay.finish();
+    return;
+  }
+  const D = TUNING.director;
+  const offer = replayOffer();
+  if (offer === 'highlights') {
+    replay.play(highlights, D.highlightSpeed);
+  } else if (offer === 'replay') {
+    const clip = recorder.clip(D.replayLead, caption);
+    if (clip) replay.play([clip], D.replaySpeed);
+  }
 }
 hud.onReplayClick(toggleReplay);
 hud.onMenuClick(openMenu);
@@ -150,14 +174,25 @@ hud.onContactTap((x, y) => {
   if (kick.state.kind === 'aiming' || kick.state.kind === 'charging') kick.contact = clampContact(x, y);
 });
 
-/** Start, mark and stop the recording as the kick moves through its states. */
+/** Start, mark and keep the recording as the kick moves through its states. */
 function trackRecording(): void {
-  const k = kick.state.kind;
-  if (k === lastKickState) return;
-  if (k === 'aiming' || k === 'cpuRunUp') recorder.start();
-  if (k === 'ballInFlight') recorder.markStrike();
-  if (k === 'nextKick') recorder.stop();
-  lastKickState = k;
+  if (match.shootout !== highlightsOf) {
+    highlights = [];
+    highlightsOf = match.shootout;
+  }
+  const k = kick.state;
+  if (k.kind === lastKickState) return;
+  if (k.kind === 'result') caption = `${TEAMS[kick.shooter].name}: ${describeOutcome(k.outcome)}`;
+  // Leaving a result (to the next kick, or the end) closes that kick's clip. The next kick
+  // can start within the same physics step, so this can't wait for 'nextKick'.
+  if (lastKickState === 'result') {
+    const clip = recorder.clip(TUNING.director.replayLead, caption);
+    if (clip) highlights.push(clip);
+    recorder.stop();
+  }
+  if (k.kind === 'aiming' || k.kind === 'cpuRunUp') recorder.start();
+  if (k.kind === 'ballInFlight') recorder.markStrike();
+  lastKickState = k.kind;
 }
 
 function render(gameDt: number): void {
@@ -177,7 +212,7 @@ function render(gameDt: number): void {
   hud.setContact(state === 'aiming' || state === 'charging' ? kick.contact : null);
   if (kick.runUp !== null) hud.setRunUp(kick.runUp);
   else hud.setPower(state === 'aiming' ? 0 : power);
-  hud.setReplay(state === 'result' && replay.available ? 'available' : null);
+  hud.setReplay(replayOffer());
 
   trackRecording();
   recorder.capture(gameDt);
@@ -187,7 +222,7 @@ function render(gameDt: number): void {
 /** A replay frame: the recorder poses the scene; nothing live is updated. */
 function renderReplay(): void {
   reticle.visible = false;
-  hud.setReplay('playing');
+  hud.setReplaying(replay.caption);
   renderer.render(scene, camera);
 }
 

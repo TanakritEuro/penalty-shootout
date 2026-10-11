@@ -208,6 +208,8 @@ export const TUNING = {
     replayCamera: { x: 9, y: 2.4, z: 7.5, lookX: -0.5, lookY: 0.9, lookZ: 4.2, fov: 46 },
     /** Replay speed (fraction of real time) and how much run-up (s) to show before the strike. */
     replaySpeed: 0.5,
+    /** End-of-shootout highlights: every kick in a row, at this speed (fraction of real time). */
+    highlightSpeed: 1,
     replayLead: 1.2,
   },
   camera: {

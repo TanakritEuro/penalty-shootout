@@ -1,16 +1,18 @@
 import type { Director } from '../camera/director';
-import { TUNING } from '../config';
 import type { Net, Ripple } from '../net';
-import type { Recorder } from './recorder';
+import type { Clip, Recorder } from './recorder';
 
 /**
- * Plays back the last kick from the Recorder: from just before the strike to the result,
- * at reduced speed, from the director's replay camera. While it runs the game is frozen
- * (the caller stops stepping physics) and the live scene is restored when it ends.
+ * Plays recorded clips back: one kick's replay, or a highlights reel of several in a row.
+ * Each clip runs from just before its strike to its result, from the director's replay
+ * camera facing the side the ball went. While it runs the game is frozen (the caller stops
+ * stepping physics) and the live scene is restored when it ends.
  */
 export class Replay {
+  private clips: Clip[] = [];
+  private index = 0;
   private time = 0;
-  private end = 0;
+  private speed = 1;
   private liveRipples: Ripple[] = [];
   private playing = false;
 
@@ -24,30 +26,35 @@ export class Replay {
     return this.playing;
   }
 
-  /** True if there is a kick to replay. */
-  get available(): boolean {
-    return this.recorder.span(TUNING.director.replayLead) !== null;
+  /** What the current clip shows, and where it is in the reel ("2 / 7"), for the HUD. */
+  get caption(): string {
+    const clip = this.clips[this.index];
+    if (!clip) return '';
+    return this.clips.length > 1 ? `${this.index + 1} / ${this.clips.length} · ${clip.caption}` : clip.caption;
   }
 
-  begin(): boolean {
-    const span = this.recorder.span(TUNING.director.replayLead);
-    if (!span || this.playing) return false;
-    this.time = span.start;
-    // Hold the last frame for a moment before handing back.
-    this.end = span.end + 0.4;
+  /** Play `clips` in order at `speed` (fraction of real time). */
+  play(clips: Clip[], speed: number): boolean {
+    if (this.playing || clips.length === 0) return false;
+    this.clips = clips;
+    this.speed = speed;
     this.liveRipples = this.net.snapshot();
-    this.director.beginReplay();
     this.playing = true;
-    this.recorder.apply(this.time);
+    this.startClip(0);
     return true;
   }
 
-  /** Advance by real seconds; poses the scene. Returns false once it has finished. */
+  /** Advance by real seconds; poses the scene. Returns false once everything has played. */
   update(realDt: number): boolean {
     if (!this.playing) return false;
-    this.time += realDt * TUNING.director.replaySpeed;
-    this.recorder.apply(this.time);
-    if (this.time >= this.end) this.finish();
+    const clip = this.clips[this.index];
+    this.time += realDt * this.speed;
+    this.recorder.apply(clip, this.time);
+    // Hold each clip's last frame for a moment before moving on.
+    if (this.time >= clip.end + 0.4) {
+      if (this.index + 1 < this.clips.length) this.startClip(this.index + 1);
+      else this.finish();
+    }
     return this.playing;
   }
 
@@ -56,5 +63,14 @@ export class Replay {
     this.playing = false;
     this.director.endReplay();
     this.net.restore(this.liveRipples);
+  }
+
+  private startClip(i: number): void {
+    this.index = i;
+    const clip = this.clips[i];
+    this.time = clip.start;
+    this.director.endReplay();
+    this.director.beginReplay(clip.side);
+    this.recorder.apply(clip, this.time);
   }
 }

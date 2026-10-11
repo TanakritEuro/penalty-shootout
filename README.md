@@ -9,8 +9,16 @@ npm run dev
 
 Open http://localhost:5173.
 
-Pick your team, the opponent and how good their keeper is in the menu, then **Kick off**.
-It's a best-of-five penalty shootout, then sudden death.
+Pick a mode in the menu, then **Kick off**. Every shootout is best of five, then sudden death.
+
+- **Friendly:** one shootout against the CPU; pick both teams and how good their keeper is.
+- **Cup:** quarter-final, semi-final and final against drawn opponents, with the keeper
+  getting better each round. Lose once and you're out.
+- **2 players** (one keyboard): whoever is shooting aims with the mouse, whoever is in goal
+  dives with the arrow keys; you swap every kick.
+
+Your record against the CPU (wins, streaks, scoring and saving rates, cups) is kept in this
+browser and shown in the menu.
 
 **Shooting:** move the mouse to aim, hold the left button to charge the power meter and
 release to shoot. Charging into the red zone overpowers the shot so it drifts high and
@@ -18,7 +26,8 @@ wide. **W / A / S / D** move where you strike the ball (the dot in the little ba
 meter): hit it off-centre to curl it, at the cost of some pace and accuracy. Curling it away
 from the keeper fools them; bending it in towards them doesn't.
 
-**Other keys:** **Space** replays the last kick in slow motion, **Esc** opens the menu,
+**Other keys:** **Space** replays the last kick in slow motion (after the final whistle, it
+plays the highlights: every kick of the shootout), **Esc** opens the menu,
 **M** mutes. Click to skip a result.
 
 **In goal** (on the CPU's kicks) the view switches to behind your goal. Watch the kicker's run-up:

@@ -62,7 +62,11 @@ reactions, whistle, kick, woodwork, net, parry); it starts on the Kick off click
 `replay/` records each kick's on-screen transforms and plays the last one back in slow
 motion from a side camera (Space). Touch works through pointer events; the HUD compacts on
 phone-sized screens and the director widens the field of view on narrow ones (`fitFov`).
-All seven roadmap milestones are done; what's left is playtesting and tuning.
+All seven roadmap milestones are done. Since then: modes (`match/session.ts`: friendly, a
+three-round cup, two players on one keyboard), saved stats (`match/stats.ts`, localStorage),
+end-of-shootout highlights (every kick's clip, played back to back), Vitest tests and a
+GitHub Actions workflow that tests, builds and deploys to GitHub Pages. What's left is
+playtesting and tuning.
 
 ## Layout
 
@@ -75,8 +79,9 @@ All seven roadmap milestones are done; what's left is playtesting and tuning.
 - `src/input/` — pointer input, keeper arrow keys and spin keys, latched for the fixed step.
 - `src/shooting/` — aim and reticle, power model, spin, aerodynamics, launch solver, outcome
   tracker, CPU kicker.
-- `src/match/` — `kick.ts` (one penalty's state machine, player or CPU), `shootout.ts` (scoring
-  rules), `match.ts` (whole-shootout flow), `teams.ts` (invented teams and colours).
+- `src/match/` — `kick.ts` (one penalty's state machine, human or CPU), `shootout.ts` (scoring
+  rules), `match.ts` (whole-shootout flow), `session.ts` (modes and the cup), `stats.ts`
+  (saved record), `teams.ts` (invented teams and kits).
 - `src/keeper/` — keeper body and state machine (`keeper.ts`), dive decision (`brain.ts`),
   pose maths and reach limit (`pose.ts`), rigged mesh posed from the physics (`mesh.ts`).
 - `src/characters/` — procedural humanoid rig (`rig.ts`) and the animated kickers (`kicker.ts`).
@@ -84,7 +89,8 @@ All seven roadmap milestones are done; what's left is playtesting and tuning.
 - `src/ui/hud.ts` — DOM HUD (power meter, spin widget, result banner, scoreboard, replay button).
 - `src/ui/menu.ts` — start / pause menu: teams, CPU keeper level, sound.
 - `src/audio/sound.ts` — synthesised crowd and sound effects.
-- `src/replay/` — per-kick recorder and slow-motion replay playback.
+- `src/replay/` — per-kick recorder (clips) and playback of a replay or the highlights reel.
+- `tests/` — Vitest; `helpers.ts` fires real shots through headless Rapier.
 
 ## Conventions
 
