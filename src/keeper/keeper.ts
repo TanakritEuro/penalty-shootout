@@ -14,6 +14,8 @@ import type { ColliderTag } from '../physics';
 import { planDive, type DivePlan } from './brain';
 import { distanceToKeeper, diveTargetPose, landedPose, lerpPose, standingPose, type KeeperPose } from './pose';
 
+export type KeeperPhase = KeeperState['kind'];
+
 type KeeperState =
   | { kind: 'ready' }
   | { kind: 'waiting'; plan: DivePlan; elapsed: number }
@@ -89,6 +91,11 @@ export class Keeper {
   /** Distance (m) from a point in the plane of the goal line to the keeper's body and gloves. */
   distanceTo(x: number, y: number): number {
     return distanceToKeeper(this.pose, x, y);
+  }
+
+  /** What the keeper is doing, for animation. */
+  get phase(): KeeperPhase {
+    return this.state.kind;
   }
 
   /** True until the keeper has committed to a dive for this kick. */

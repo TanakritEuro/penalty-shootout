@@ -62,12 +62,12 @@ function fixedStep(): void {
   net.step(PHYSICS_STEP);
 }
 
-function render(): void {
+function render(gameDt: number): void {
   const p = ball.translation();
   const r = ball.rotation();
   ballMesh.position.set(p.x, p.y, p.z);
   ballMesh.quaternion.set(r.x, r.y, r.z, r.w);
-  keeperMesh.update();
+  keeperMesh.update(gameDt);
 
   const state = kick.state.kind;
   const power = state === 'charging' ? kick.power : null;
@@ -95,7 +95,7 @@ function frame(now: number): void {
     fixedStep();
     accumulator -= PHYSICS_STEP;
   }
-  render();
+  render(realDt * director.timeScale);
   requestAnimationFrame(frame);
 }
 
