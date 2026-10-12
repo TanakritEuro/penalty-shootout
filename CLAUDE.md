@@ -4,7 +4,8 @@ A 3D browser penalty-shootout game. The player takes penalties against an AI kee
 (and later keeps goal against AI kickers), best of five, then sudden death.
 
 Built with Three.js (rendering), Rapier (physics, `@dimforge/rapier3d-compat`),
-TypeScript and Vite. No backend.
+TypeScript and Vite. No backend of our own: online play is peer to peer over WebRTC
+(PeerJS), using the free public PeerJS server only to introduce the two browsers.
 
 ## Commands
 
@@ -73,7 +74,19 @@ model with `scripts/prepare-models.mjs`. A stadium surrounds the pitch (`stadium
 night option and Full / Lite graphics. Feedback: a faint trail behind hard shots (`trail.ts`),
 camera shake off the woodwork, a cut to the scorer celebrating after a human's goal
 (`director.celebrate`), a sweet-spot band on the power meter and first-time tips
-(`ui/hints.ts`, shown until acted on or twice, remembered per browser). What's left is
+(`ui/hints.ts`, shown until acted on or twice, remembered per browser).
+
+Online play (`src/online/`, menu mode Online): one player creates a room and shares a
+four-character code, the other joins with it (`link.ts`: PeerJS, a reliable `events`
+channel and an unordered `frames` channel, heartbeats). The host is authoritative: its
+browser runs physics and the Match as usual, with the guest as a `RemoteSeat` playing the
+`cpu` side (`host.ts`). The guest's device runs no physics; it plays back the host's
+on-screen transforms (the replay recorder's snapshot, 16-bit, 30 a second, `frames.ts`)
+about 0.1 s behind with interpolation, and gets its own camera (a second Director on the
+host), HUD text written from its point of view, and sounds (`Sound.echo`). The guest aims
+and charges locally and sends only the release (with the power its own meter reached) and
+dives, so its controls don't lag (`guest.ts`). No replays or pausing online. Bump
+`PROTOCOL` in `protocol.ts` when a message changes. What's left is
 playtesting and tuning.
 
 ## Layout
@@ -88,6 +101,7 @@ playtesting and tuning.
 - `src/config.ts` — `TUNING`: every gameplay knob (power, spin, curve, keepers, camera, slow motion, net).
 - `src/main.ts` — entry point: builds the `Game` and starts it.
 - `src/game/` — `game.ts` (wires everything; frame loop: fixed physics steps, then render),
+  `online.ts` (create / join / leave an online game),
   `replays.ts` (per-kick recording, replay and highlights offers), `debug.ts` (URL debug flags and
   the `?stats` overlay), `graphics.ts` (Full / Lite graphics, remembered per browser).
 - `src/input/` — pointer input, keeper arrow keys and spin keys, latched for the fixed step.
@@ -107,7 +121,11 @@ playtesting and tuning.
 - `src/ui/menu.ts` — start / pause menu: teams, CPU keeper level, sound.
 - `src/audio/sound.ts` — synthesised crowd and sound effects.
 - `src/replay/` — per-kick recorder (clips) and playback of a replay or the highlights reel.
-- `tests/` — Vitest; `helpers.ts` fires real shots through headless Rapier.
+- `src/online/` — online play: `link.ts` (PeerJS rooms), `protocol.ts` (messages, checked on
+  arrival), `frames.ts` (frame packing), `host.ts` (the guest's seat on the host), `guest.ts`.
+- `src/input/shooter.ts` — `ShooterControls`: a human kick's input, local or from the network.
+- `tests/` — Vitest; `helpers.ts` fires real shots through headless Rapier and has an in-memory
+  `Link` pair for online tests.
 
 ## Conventions
 

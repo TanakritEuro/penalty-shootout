@@ -89,4 +89,16 @@ describe('Session: friendly and two players', () => {
     events().onFinish!('cpu', shootout(false));
     expect(stats.data).toMatchObject({ played: 0, kicksTaken: 0 });
   });
+
+  it('online games are not counted either, and rematch on continue', () => {
+    const { session, restarts, events, stats, hooks } = setup();
+    session.begin({ mode: 'online', teams: { player: TEAM_LIST[2], cpu: TEAM_LIST[3] }, level: 'normal' });
+    expect(restarts.at(-1)).toEqual({ twoPlayer: false, online: true });
+    expect(hooks.onLevel).toHaveBeenLastCalledWith(null);
+    events().onKick!('cpu', { kind: 'goal', woodwork: null, keeperTouch: false });
+    expect(events().onFinish!('player', shootout(true))).toBeUndefined();
+    events().onContinue!();
+    expect(restarts.at(-1)).toEqual({ twoPlayer: false, online: true });
+    expect(stats.data).toMatchObject({ played: 0, kicksTaken: 0 });
+  });
 });

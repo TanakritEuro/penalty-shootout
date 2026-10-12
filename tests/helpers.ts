@@ -3,6 +3,7 @@
 // then steps physics until the ShotTracker calls the outcome.
 
 import type { KeeperLevelName } from '../src/config';
+import type { Link } from '../src/online/link';
 import { BALL_RADIUS, PENALTY_SPOT_Z, PHYSICS_STEP } from '../src/constants';
 import { Keeper } from '../src/keeper/keeper';
 import { createPhysics, type Physics } from '../src/physics';
@@ -117,4 +118,31 @@ export function seededRandom(seed: number): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/**
+ * Two links joined back to back in memory, for tests: what one sends, the other receives
+ * (a structured clone, as if it had crossed the network), delivered when `flush` is called.
+ */
+export function memoryLinks(): { a: Link; b: Link; flush: () => void } {
+  const queue: { to: Link; message: unknown }[] = [];
+  const make = (): Link & { other?: Link } => ({
+    onMessage: () => {},
+    onClose: () => {},
+    send(message) {
+      queue.push({ to: this.other!, message: structuredClone(message) });
+    },
+    close() {},
+  });
+  const a = make();
+  const b = make();
+  a.other = b;
+  b.other = a;
+  const flush = () => {
+    while (queue.length) {
+      const { to, message } = queue.shift()!;
+      to.onMessage(message);
+    }
+  };
+  return { a, b, flush };
 }

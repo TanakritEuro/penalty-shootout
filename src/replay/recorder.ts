@@ -20,7 +20,8 @@ export interface Clip {
   caption: string;
 }
 
-const STRIDE = 8;
+/** Floats per tracked object in a frame: position (3), quaternion (4), visibility (1). */
+export const STRIDE = 8;
 /** Longest recording kept (game seconds); anything older is dropped. */
 const MAX_LENGTH = 10;
 
@@ -88,6 +89,31 @@ export class Recorder {
     if (!this.recording) return;
     this.clock += dt;
     if (this.frames.length && dt === 0) return; // paused: nothing new to record
+    this.frames.push({ t: this.clock, data: this.snapshot(), ripples: this.net.snapshot() });
+    while (this.frames.length > 2 && this.clock - this.frames[0].t > MAX_LENGTH) this.frames.shift();
+  }
+
+  /** How many objects each frame tracks. */
+  get size(): number {
+    return this.objects.length;
+  }
+
+  /**
+   * Which tracked objects can be seen: false for any whose own or an ancestor's `visible`
+   * is off (the kicker who isn't taking this kick), so they needn't be sent anywhere.
+   */
+  shown(): boolean[] {
+    const index = new Map(this.objects.map((o, i) => [o, i]));
+    const shown: boolean[] = [];
+    this.objects.forEach((o, i) => {
+      const parent = o.parent ? index.get(o.parent) : undefined;
+      shown[i] = o.visible && (parent === undefined || shown[parent]);
+    });
+    return shown;
+  }
+
+  /** The transforms of everything tracked, as they are now (one frame's `data`). */
+  snapshot(): Float32Array {
     const data = new Float32Array(this.objects.length * STRIDE);
     this.objects.forEach((o, i) => {
       const k = i * STRIDE;
@@ -100,8 +126,7 @@ export class Recorder {
       data[k + 6] = o.quaternion.w;
       data[k + 7] = o.visible ? 1 : 0;
     });
-    this.frames.push({ t: this.clock, data, ripples: this.net.snapshot() });
-    while (this.frames.length > 2 && this.clock - this.frames[0].t > MAX_LENGTH) this.frames.shift();
+    return data;
   }
 
   /** Pose everything as it was at time `time` (recording clock) in `clip`. */

@@ -5,7 +5,7 @@ import type { Shootout, Side } from './shootout';
 import type { Stats } from './stats';
 import { TEAM_LIST, TEAMS, type Team } from './teams';
 
-export type GameMode = 'friendly' | 'cup' | 'twoPlayer';
+export type GameMode = 'friendly' | 'cup' | 'twoPlayer' | 'online';
 
 export interface SessionChoice {
   mode: GameMode;
@@ -29,7 +29,8 @@ export interface SessionHooks {
 
 /**
  * What the player chose to play, across shootouts: a friendly against the CPU (rematch on
- * click), two players on one keyboard, or a cup run. Records single-player stats.
+ * click), two players on one keyboard or on two devices, or a cup run. Records stats
+ * against the CPU.
  */
 export class Session {
   mode: GameMode = 'friendly';
@@ -43,11 +44,15 @@ export class Session {
   ) {
     match.events = {
       onKick: (shooter, outcome) => {
-        if (this.mode !== 'twoPlayer') this.stats.recordKick(shooter, outcome);
+        if (this.againstCpu) this.stats.recordKick(shooter, outcome);
       },
       onFinish: (winner, shootout) => this.finish(winner, shootout),
       onContinue: () => this.continue(),
     };
+  }
+
+  private get againstCpu(): boolean {
+    return this.mode === 'friendly' || this.mode === 'cup';
   }
 
   begin(choice: SessionChoice): void {
@@ -63,8 +68,8 @@ export class Session {
     this.cup = null;
     TEAMS.cpu = choice.teams.cpu;
     this.setLevel(choice.level);
-    if (choice.mode === 'twoPlayer') this.hooks.onLevel(null);
-    this.match.restart({ twoPlayer: choice.mode === 'twoPlayer' });
+    if (!this.againstCpu) this.hooks.onLevel(null);
+    this.match.restart(choice.mode === 'online' ? { twoPlayer: false, online: true } : { twoPlayer: choice.mode === 'twoPlayer' });
   }
 
   private startCupRound(): void {
@@ -81,7 +86,7 @@ export class Session {
   }
 
   private finish(winner: Side, shootout: Shootout): FinishBanner | void {
-    if (this.mode === 'twoPlayer') return;
+    if (!this.againstCpu) return;
     const won = winner === 'player';
     this.stats.recordMatch(won);
     const cup = this.cup;

@@ -377,6 +377,61 @@ body {
   display: none;
 }
 
+.menu-panel button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Online: create a room, or type a code and join; then the code to share, or who you're playing. */
+.menu-online-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-online-or {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.menu-online-code {
+  width: 92px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: inherit;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.menu-online-code:focus {
+  outline: none;
+  border-color: #ffe14d;
+}
+
+.menu-online-text {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.menu-online-room {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: rgba(255, 225, 77, 0.16);
+  color: #ffe14d;
+  font-size: 20px;
+  letter-spacing: 0.18em;
+}
+
 .menu-help {
   margin-top: 14px;
   font-size: 12px;

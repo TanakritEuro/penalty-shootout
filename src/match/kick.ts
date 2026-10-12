@@ -3,13 +3,13 @@ import * as THREE from 'three';
 import { TUNING } from '../config';
 import { BALL_RADIUS, PENALTY_SPOT_Z } from '../constants';
 import type { PointerInput } from '../input/pointer';
+import { LocalShooter, type ShooterControls } from '../input/shooter';
 import type { SpinKeys } from '../input/spinKeys';
 import type { ColliderTag } from '../physics';
-import { aimFromPointer } from '../shooting/aim';
 import { chooseCpuShot, counterKeeper, type CpuShot } from '../shooting/cpuKicker';
 import { ShotTracker, type ShotOutcome } from '../shooting/outcome';
 import { applyShotError, powerFromCharge, speedForPower } from '../shooting/power';
-import { CENTRE, contactScatter, contactSpeedFactor, nudgeContact, spinFromContact, type Contact } from '../shooting/spin';
+import { CENTRE, contactScatter, contactSpeedFactor, spinFromContact, type Contact } from '../shooting/spin';
 import { predictCrossing, solveLaunch } from '../shooting/trajectory';
 import type { Side } from './shootout';
 
@@ -53,16 +53,22 @@ export class Kick {
   shooter: Side = 'player';
   /** Where the player is aiming on the goal line (x across, y up). */
   readonly aim = new THREE.Vector2(0, 1);
-  /** Where the player will strike the ball (W / A / S / D). Kept from kick to kick. */
+  /** Where the shooter will strike the ball (W / A / S / D), while they aim. */
   contact: Contact = CENTRE;
   events: KickEvents = {};
+  /** The mouse and keys on this device; human kicks use these unless `start` is given others. */
+  readonly local: LocalShooter;
+  /** Whoever is taking this kick (the local controls for the CPU's, so stray clicks are swallowed). */
+  private controls: ShooterControls;
 
   constructor(
     private readonly ball: RAPIER.RigidBody,
-    private readonly input: PointerInput,
+    input: PointerInput,
     private readonly camera: THREE.Camera,
-    private readonly spinKeys: SpinKeys,
+    spinKeys: SpinKeys,
   ) {
+    this.local = new LocalShooter(input, spinKeys);
+    this.controls = this.local;
     this.placeBall();
   }
 
@@ -118,16 +124,15 @@ export class Kick {
   }
 
   /**
-   * Set the ball on the spot and hand the kick to `shooter`: a human aims and charges, the
-   * CPU picks its shot and runs up.
+   * Set the ball on the spot and hand the kick to `shooter`: a human aims and charges (with
+   * `controls`, this device's by default), the CPU picks its shot and runs up.
    */
-  start(shooter: Side, human = shooter === 'player'): void {
+  start(shooter: Side, human = shooter === 'player', controls: ShooterControls = this.local): void {
     this.shooter = shooter;
+    this.controls = controls;
     this.placeBall();
-    this.input.consumePress();
-    this.input.consumeRelease();
-    this.input.consumeCancel();
-    this.spinKeys.consume(); // W / A / S / D pressed between kicks don't count
+    controls.clear();
+    this.contact = controls.contact();
     this.sinceStrike = null;
     if (human) {
       this.state = { kind: 'aiming' };
@@ -162,32 +167,35 @@ export class Kick {
         // A press starts charging. Its release may already be waiting (a tap faster than one
         // step), so leave that for the charging state; any other release is left over from
         // skipping the last result.
-        if (this.input.consumePress()) this.state = { kind: 'charging', elapsed: 0 };
-        else this.input.consumeRelease();
+        if (this.controls.consumePress()) this.state = { kind: 'charging', elapsed: 0 };
+        else this.controls.consumeRelease();
         break;
 
       case 'charging':
         this.updateAim();
         this.updateContact();
         s.elapsed += dt;
-        if (this.input.consumeCancel()) this.state = { kind: 'aiming' };
-        else if (this.input.consumeRelease()) this.startStrike(powerFromCharge(s.elapsed));
+        if (this.controls.consumeCancel()) this.state = { kind: 'aiming' };
+        else {
+          const release = this.controls.consumeRelease();
+          if (release) this.startStrike(release.power ?? powerFromCharge(s.elapsed));
+        }
         break;
 
       case 'striking':
-        this.input.consumePress();
+        this.controls.consumePress();
         s.elapsed += dt;
         if (s.elapsed >= s.duration) this.shoot(s.aim, s.power, s.contact);
         break;
 
       case 'cpuRunUp':
-        this.input.consumePress(); // clicks don't do anything while the computer shoots
+        this.controls.consumePress(); // clicks don't do anything while the computer shoots
         s.elapsed += dt;
         if (s.elapsed >= TUNING.cpuKicker.runUpTime) this.shoot(s.shot.aim, s.shot.power, s.shot.contact);
         break;
 
       case 'ballInFlight': {
-        this.input.consumePress();
+        this.controls.consumePress();
         const outcome = s.tracker.update(dt, this.ball.translation(), this.ball.linvel());
         if (outcome) {
           this.state = { kind: 'result', outcome, launchSpeed: s.launchSpeed, elapsed: 0 };
@@ -199,7 +207,7 @@ export class Kick {
       case 'result':
         s.elapsed += dt;
         // Click to skip ahead once the banner has had a moment on screen.
-        if ((this.input.consumePress() && s.elapsed > 0.4) || s.elapsed > TUNING.outcome.resultDuration) {
+        if ((this.controls.consumePress() && s.elapsed > 0.4) || s.elapsed > TUNING.outcome.resultDuration) {
           this.state = { kind: 'nextKick' };
           this.events.onDone?.(s.outcome);
         }
@@ -219,12 +227,11 @@ export class Kick {
   }
 
   private updateAim(): void {
-    aimFromPointer(this.input.ndc, this.camera, this.aim);
+    this.controls.aim(this.camera, this.aim);
   }
 
   private updateContact(): void {
-    const n = this.spinKeys.consume();
-    if (n.x || n.y) this.contact = nudgeContact(this.contact, n.x * TUNING.spin.nudge, n.y * TUNING.spin.nudge);
+    this.contact = this.controls.contact();
   }
 
   private shoot(aim: { x: number; y: number }, power: number, contact: Contact): void {

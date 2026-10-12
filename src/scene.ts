@@ -38,11 +38,8 @@ export function createScene(canvas: HTMLCanvasElement): GameScene {
   scene.background = new THREE.Color(0x87b5e0);
   scene.fog = new THREE.Fog(0x87b5e0, 60, 140);
 
-  // Low camera just behind the kicker: the goal fills the view, the ball stays in shot below it.
-  const cam = TUNING.camera;
-  const camera = new THREE.PerspectiveCamera(cam.fov, window.innerWidth / window.innerHeight, 0.1, 300);
-  camera.position.set(0, cam.height, PENALTY_SPOT_Z + cam.behindSpot);
-  camera.lookAt(0, cam.lookAtHeight, 0);
+  const camera = new THREE.PerspectiveCamera(TUNING.camera.fov, window.innerWidth / window.innerHeight, 0.1, 300);
+  placeMainCamera(camera);
 
   const lights = addLights(scene);
   scene.add(createPitch());
@@ -81,6 +78,15 @@ export function createScene(canvas: HTMLCanvasElement): GameScene {
   };
 
   return { renderer, scene, camera, ball, net, setNight };
+}
+
+/** The broadcast camera: low, just behind the kicker, so the goal fills the view and the ball stays in shot below it. */
+export function placeMainCamera(camera: THREE.PerspectiveCamera): void {
+  const cam = TUNING.camera;
+  camera.fov = cam.fov;
+  camera.position.set(0, cam.height, PENALTY_SPOT_Z + cam.behindSpot);
+  camera.lookAt(0, cam.lookAtHeight, 0);
+  camera.updateProjectionMatrix();
 }
 
 function addLights(scene: THREE.Scene): { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight } {

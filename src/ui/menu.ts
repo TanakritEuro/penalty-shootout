@@ -16,13 +16,27 @@ export interface MenuEvents {
   onNight: (night: boolean) => void;
   /** Full graphics, or Lite for weaker devices. */
   onLite: (lite: boolean) => void;
+  /** Online: open a room for an opponent to join, playing as `team`. */
+  onHost: (team: Team) => void;
+  /** Online: join the room with this code, playing as `team`. */
+  onJoin: (code: string, team: Team) => void;
+  /** Online: stop waiting or connecting, or leave the game in progress. */
+  onLeaveOnline: () => void;
 }
+
+/** Where the online row is up to. */
+export type OnlineMenuState =
+  | { kind: 'idle'; message?: string }
+  | { kind: 'hosting'; code: string }
+  | { kind: 'joining'; code: string }
+  | { kind: 'connected'; opponent: string };
 
 const LEVELS: readonly KeeperLevelName[] = ['easy', 'normal', 'hard'];
 const MODES: readonly { mode: GameMode; label: string; help: string }[] = [
   { mode: 'friendly', label: 'Friendly', help: 'One shootout against the CPU.' },
   { mode: 'cup', label: 'Cup', help: 'Quarter-final, semi-final, final against drawn opponents; keepers get better each round. Lose once and you are out.' },
   { mode: 'twoPlayer', label: '2 players', help: 'Two players, one keyboard: the shooter aims with the mouse, the keeper dives with the arrow keys. Swap each kick.' },
+  { mode: 'online', label: 'Online', help: 'Play a friend on another device. One of you creates a room and shares its code; the other joins with it. You each pick your own team.' },
 ];
 
 /**
@@ -45,6 +59,10 @@ export class Menu {
   private lite: boolean;
   private readonly statsLine: HTMLDivElement;
   private readonly statsRow: HTMLDivElement;
+  private readonly onlineRow: HTMLDivElement;
+  private readonly onlineBody: HTMLDivElement;
+  private online: OnlineMenuState = { kind: 'idle' };
+  private readonly play: HTMLButtonElement;
   private muted: boolean;
   private choice: SessionChoice;
 
@@ -102,6 +120,12 @@ export class Menu {
     level.row.append(seg);
     panel.append(level.row);
 
+    const online = row('Play online');
+    this.onlineRow = online.row;
+    this.onlineBody = el('div', 'menu-online');
+    online.row.append(this.onlineBody);
+    panel.append(online.row);
+
     const sound = row('Sound (M)');
     this.soundButton = button('menu-sound', () => {
       this.setMuted(!this.muted);
@@ -151,9 +175,9 @@ export class Menu {
     const actions = el('div', 'menu-actions');
     this.resume = button('menu-resume', () => this.events.onResume());
     this.resume.textContent = 'Resume';
-    const play = button('menu-play', () => this.events.onPlay({ ...this.choice, teams: { ...this.choice.teams } }));
-    play.textContent = 'Kick off';
-    actions.append(this.resume, play);
+    this.play = button('menu-play', () => this.events.onPlay({ ...this.choice, teams: { ...this.choice.teams } }));
+    this.play.textContent = 'Kick off';
+    actions.append(this.resume, this.play);
     panel.append(actions);
 
     const help = el('p', 'menu-help');
@@ -163,6 +187,7 @@ export class Menu {
     panel.append(help);
 
     this.root.append(panel);
+    this.renderOnline();
     this.refresh();
   }
 
@@ -186,6 +211,14 @@ export class Menu {
     this.refresh();
   }
 
+  /** Show where online play is up to (and switch to the Online mode if it's under way). */
+  setOnline(state: OnlineMenuState): void {
+    this.online = state;
+    if (state.kind !== 'idle') this.choice = { ...this.choice, mode: 'online' };
+    this.renderOnline();
+    this.refresh();
+  }
+
   /** Show the saved record, or hide the row before the first game. */
   setStats(summary: string | null): void {
     this.statsRow.hidden = summary === null;
@@ -205,6 +238,59 @@ export class Menu {
     this.refresh();
   }
 
+  private renderOnline(): void {
+    const s = this.online;
+    const body = this.onlineBody;
+    const team = () => this.choice.teams.player;
+    const text = (t: string) => {
+      const p = el('p', 'menu-online-text');
+      p.textContent = t;
+      return p;
+    };
+    const leave = (label: string) => {
+      const b = button('menu-online-leave', () => this.events.onLeaveOnline());
+      b.textContent = label;
+      return b;
+    };
+    switch (s.kind) {
+      case 'idle': {
+        const host = button('menu-online-host', () => this.events.onHost(team()));
+        host.textContent = 'Create a room';
+        const code = el('input', 'menu-online-code');
+        code.placeholder = 'Code';
+        code.maxLength = 4;
+        code.autocomplete = 'off';
+        code.spellcheck = false;
+        code.setAttribute('aria-label', 'Room code');
+        const join = button('menu-online-join', () => this.events.onJoin(code.value, team()));
+        join.textContent = 'Join';
+        code.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') join.click();
+        });
+        const controls = el('div', 'menu-online-controls');
+        controls.append(host, el('span', 'menu-online-or'), code, join);
+        controls.children[1].textContent = 'or';
+        body.replaceChildren(controls);
+        if (s.message) body.append(text(s.message));
+        break;
+      }
+      case 'hosting': {
+        const p = text('Room code ');
+        const code = el('strong', 'menu-online-room');
+        code.textContent = s.code;
+        p.append(code, ' · waiting for your opponent to join with it…');
+        body.replaceChildren(p, leave('Cancel'));
+        break;
+      }
+      case 'joining':
+        body.replaceChildren(text(`Joining room ${s.code}…`), leave('Cancel'));
+        break;
+      case 'connected':
+        body.replaceChildren(text(`Playing online against ${s.opponent}.`), leave('Leave'));
+        break;
+    }
+  }
+
   private refresh(): void {
     const mode = this.choice.mode;
     this.modeButtons.forEach((b, i) => b.classList.toggle('selected', MODES[i].mode === mode));
@@ -214,6 +300,7 @@ export class Menu {
       friendly: { player: 'Your team', cpu: 'Opponent' },
       cup: { player: 'Your team', cpu: '' },
       twoPlayer: { player: 'Player 1', cpu: 'Player 2' },
+      online: { player: 'Your team', cpu: '' },
     };
     for (const side of ['player', 'cpu'] as const) {
       const r = this.teamRows[side];
@@ -221,7 +308,12 @@ export class Menu {
       r.buttons.forEach((b, i) => b.classList.toggle('selected', TEAM_LIST[i] === this.choice.teams[side]));
     }
     // The cup draws your opponents and sets each round's keeper; two players have no CPU.
-    this.teamRows.cpu.row.hidden = mode === 'cup';
+    this.teamRows.cpu.row.hidden = mode === 'cup' || mode === 'online';
+    // Online games start when the other player connects, not from Kick off; your team is
+    // locked in once you've opened or joined a room.
+    this.onlineRow.hidden = mode !== 'online';
+    this.play.hidden = mode === 'online';
+    this.teamRows.player.buttons.forEach((b) => (b.disabled = mode === 'online' && this.online.kind !== 'idle'));
     this.levelRow.hidden = mode !== 'friendly';
     this.levelButtons.forEach((b, i) => b.classList.toggle('selected', LEVELS[i] === this.choice.level));
 

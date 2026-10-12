@@ -16,6 +16,10 @@ Pick a mode in the menu, then **Kick off**. Every shootout is best of five, then
   getting better each round. Lose once and you're out.
 - **2 players** (one keyboard): whoever is shooting aims with the mouse, whoever is in goal
   dives with the arrow keys; you swap every kick.
+- **Online** (two devices): pick your team, then one of you presses **Create a room** and
+  reads out the four-character code; the other types it in and presses **Join**. Each of you
+  shoots and keeps goal on your own screen. The connection is peer to peer (WebRTC via the
+  free PeerJS server); a few strict office or mobile networks block it.
 
 Your record against the CPU (wins, streaks, scoring and saving rates, cups) is kept in this
 browser and shown in the menu. The menu also has an afternoon or floodlit night kick-off, and

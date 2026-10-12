@@ -47,14 +47,8 @@ export class Kickers {
     this.object.add(this.rigs.player.root, this.rigs.cpu.root);
   }
 
-  /** Where the kicker taking the current kick is standing (their feet). */
-  get position(): THREE.Vector3 {
-    return (this.rigs.player.root.visible ? this.rigs.player : this.rigs.cpu).root.position;
-  }
-
-  /** Pose the kicker taking `kick`. `dt` is game seconds. */
-  update(dt: number, kick: Kick): void {
-    // The menu may have picked new teams since the last frame.
+  /** Put each kicker in their team's kit, if the teams have changed (the menu, a cup round, online). */
+  dress(): void {
     for (const side of ['player', 'cpu'] as const) {
       if (this.dressed[side] !== TEAMS[side]) {
         this.dressed[side] = TEAMS[side];
@@ -62,6 +56,16 @@ export class Kickers {
         this.figures?.[side].setColours(new THREE.Color(TEAMS[side].colour).getHex(), TEAMS[side].shorts);
       }
     }
+  }
+
+  /** Where the kicker taking the current kick is standing (their feet). */
+  get position(): THREE.Vector3 {
+    return (this.rigs.player.root.visible ? this.rigs.player : this.rigs.cpu).root.position;
+  }
+
+  /** Pose the kicker taking `kick`. `dt` is game seconds. */
+  update(dt: number, kick: Kick): void {
+    this.dress();
     this.clock += dt;
     const shooter = kick.shooter;
     const rig = this.rigs[shooter];

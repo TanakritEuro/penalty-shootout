@@ -8,6 +8,12 @@
  */
 export type CrowdReaction = 'cheer' | 'roar' | 'groan' | 'ooh';
 
+/** One sound, as data: what `echo` reports and `play` plays, to sound it on another device too. */
+export type SoundEvent =
+  | { name: 'whistle' }
+  | { name: 'kick' | 'woodwork' | 'net' | 'parry'; speed: number }
+  | { name: 'react'; kind: CrowdReaction };
+
 const MUTE_KEY = 'penalty-shootout:muted';
 
 export class Sound {
@@ -18,6 +24,8 @@ export class Sound {
   private muted: boolean;
   /** Called on every crowd reaction, so the crowd you see can react with the crowd you hear. */
   onReact?: (kind: CrowdReaction) => void;
+  /** Called with every sound effect and crowd reaction, muted or not (online play forwards them). */
+  echo?: (event: SoundEvent) => void;
 
   constructor() {
     this.muted = readMuted();
@@ -48,8 +56,21 @@ export class Sound {
     if (this.ctx && this.master) this.master.gain.setTargetAtTime(muted ? 0 : 0.8, this.ctx.currentTime, 0.05);
   }
 
+  /** Play a sound described as data (from `echo` on another device). */
+  play(event: SoundEvent): void {
+    switch (event.name) {
+      case 'whistle':
+        return this.whistle();
+      case 'react':
+        return this.react(event.kind);
+      default:
+        return this[event.name](event.speed);
+    }
+  }
+
   /** Referee's whistle: a short double-tone peep. */
   whistle(): void {
+    this.echo?.({ name: 'whistle' });
     const t = this.now();
     if (t === null) return;
     for (const f of [2950, 3150]) {
@@ -66,6 +87,7 @@ export class Sound {
 
   /** Boot on ball: a low thump with a pitch drop, louder for harder shots. */
   kick(speed: number): void {
+    this.echo?.({ name: 'kick', speed });
     const t = this.now();
     if (t === null) return;
     const level = Math.min(1, 0.35 + speed / 40);
@@ -77,6 +99,7 @@ export class Sound {
 
   /** Ball on the post or bar: an inharmonic metallic ring. */
   woodwork(speed: number): void {
+    this.echo?.({ name: 'woodwork', speed });
     const t = this.now();
     if (t === null) return;
     const level = Math.min(1, 0.3 + speed / 30);
@@ -91,6 +114,7 @@ export class Sound {
    * the net rippling out and settling.
    */
   net(speed: number): void {
+    this.echo?.({ name: 'net', speed });
     const t = this.now();
     if (t === null || speed < 2) return;
     const level = Math.min(1, speed / 28);
@@ -106,6 +130,7 @@ export class Sound {
 
   /** Ball off the keeper's gloves or body: a dull slap. */
   parry(speed: number): void {
+    this.echo?.({ name: 'parry', speed });
     const t = this.now();
     if (t === null) return;
     this.noiseBurst(t, 0.09, 700, 'bandpass', Math.min(0.8, 0.3 + speed / 40));
@@ -114,6 +139,7 @@ export class Sound {
   /** The crowd reacts: a cheer, a bigger roar, a groan or an "ooh". */
   react(kind: CrowdReaction): void {
     this.onReact?.(kind);
+    this.echo?.({ name: 'react', kind });
     const t = this.now();
     if (t === null || !this.ctx || !this.master || !this.noise) return;
     const shape: Record<CrowdReaction, { from: number; to: number; q: number; attack: number; length: number; level: number }> = {

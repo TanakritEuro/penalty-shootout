@@ -16,7 +16,7 @@ export class SpinKeys {
   constructor() {
     window.addEventListener('keydown', (e) => {
       const n = NUDGES[e.code];
-      if (!n || e.repeat) return;
+      if (!n || e.repeat || e.target instanceof HTMLInputElement) return;
       this.dx += n.x;
       this.dy += n.y;
     });

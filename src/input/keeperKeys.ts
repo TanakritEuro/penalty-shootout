@@ -14,7 +14,8 @@ export class KeeperKeys {
 
   constructor() {
     window.addEventListener('keydown', (e) => {
-      if (!isArrow(e.code)) return;
+      // Not while typing (a room code in the menu).
+      if (!isArrow(e.code) || e.target instanceof HTMLInputElement) return;
       e.preventDefault();
       if (e.repeat) return;
       this.pressed.add(e.code);

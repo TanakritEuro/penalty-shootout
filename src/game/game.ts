@@ -32,16 +32,19 @@ import { Hud } from '../ui/hud';
 import { Menu } from '../ui/menu';
 import { readDebugOptions, StatsOverlay, type DebugOptions } from './debug';
 import { applyGraphics, saveLite, savedLite } from './graphics';
+import { OnlinePlay } from './online';
 import { Replays } from './replays';
 
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
 
 /**
  * The whole game, wired together: scene, physics, keeper, kickers, the match and its
- * session, menu, HUD, sound and replays. `create()` builds it; `start()` runs the loop.
+ * session, menu, HUD, sound, replays and online play. `create()` builds it; `start()`
+ * runs the loop.
  *
  * Each animation frame advances game time (scaled by slow motion and frozen by the menu
- * and replays), runs the fixed physics steps that time covers, then renders.
+ * and replays), runs the fixed physics steps that time covers, then renders. As the guest
+ * in an online game, it shows what the host sends instead.
  */
 export class Game {
   private readonly renderer: THREE.WebGLRenderer;
@@ -59,6 +62,8 @@ export class Game {
   private readonly kickers: Kickers;
   private readonly hud = new Hud();
   private readonly input: PointerInput;
+  private readonly spinKeys = new SpinKeys();
+  private readonly keeperKeys = new KeeperKeys();
   private readonly reticle = new Reticle();
   private readonly kick: Kick;
   private readonly sound = new Sound();
@@ -68,6 +73,8 @@ export class Game {
   private readonly session: Session;
   private readonly menu: Menu;
   private readonly replays: Replays;
+  private readonly recorder: Recorder;
+  private readonly online: OnlinePlay;
   private readonly debug: DebugOptions;
   private readonly statsOverlay: StatsOverlay | null;
   private readonly stadium = new Stadium();
@@ -115,9 +122,9 @@ export class Game {
     this.sound.onReact = (kind) => this.stadium.react(kind);
 
     this.input = new PointerInput(canvas);
-    this.kick = new Kick(this.ball, this.input, this.camera, new SpinKeys());
+    this.kick = new Kick(this.ball, this.input, this.camera, this.spinKeys);
     this.director = new Director(this.camera);
-    this.match = new Match(this.kick, this.keeper, this.keeperMesh, this.input, new KeeperKeys(), this.camera, this.hud, this.director, this.sound);
+    this.match = new Match(this.kick, this.keeper, this.keeperMesh, this.input, this.keeperKeys, this.camera, this.hud, this.director, this.sound);
 
     // The session runs friendlies, cups and two-player games and keeps the stats.
     this.session = new Session(this.match, this.keeper, this.stats, {
@@ -132,6 +139,7 @@ export class Game {
       { mode: 'friendly', teams: { ...TEAMS }, level: this.keeper.level, muted: this.sound.isMuted, lite: savedLite() },
       {
         onPlay: (choice) => {
+          this.online.leave();
           this.sound.unlock(); // inside a click: browsers only start audio from a user gesture
           this.session.begin(choice);
           this.matchStarted = true;
@@ -151,18 +159,58 @@ export class Game {
           saveLite(lite);
           applyGraphics(this.renderer, this.scene, this.stadium, lite);
         },
+        onHost: (team) => void this.online.hostRoom(team),
+        onJoin: (code, team) => void this.online.join(code, team),
+        onLeaveOnline: () => this.online.leave(),
       },
     );
 
     // Replays: record each kick; replay the last one, or every kick as highlights at the end.
-    const recorder = new Recorder([this.ballMesh, this.keeperMesh.object, this.kickers.object], this.net);
-    this.replays = new Replays(this.match, this.kick, recorder, new Replay(recorder, this.director, this.net));
+    // Online, the same recording of what's on screen is what the host sends the guest.
+    this.recorder = new Recorder([this.ballMesh, this.keeperMesh.object, this.kickers.object], this.net);
+    this.replays = new Replays(this.match, this.kick, this.recorder, new Replay(this.recorder, this.director, this.net));
 
-    this.hud.onReplayClick(() => this.replays.toggle());
+    this.online = new OnlinePlay(
+      {
+        menu: this.menu,
+        match: this.match,
+        session: this.session,
+        sound: this.sound,
+        net: this.net,
+        hud: this.hud,
+        recorder: this.recorder,
+        camera: this.camera,
+        reticle: this.reticle,
+        pointer: this.input,
+        spinKeys: this.spinKeys,
+        keeperKeys: this.keeperKeys,
+        keeperMesh: this.keeperMesh,
+        kickers: this.kickers,
+      },
+      {
+        started: () => {
+          this.matchStarted = this.online.host !== null;
+          this.menu.close();
+        },
+        ended: () => {
+          this.matchStarted = false;
+          this.director.reset();
+          this.reticle.visible = false;
+          this.hud.hideResult();
+          this.hud.setStatus('');
+          this.hud.setPower(null);
+          this.hud.setContact(null);
+          this.openMenu();
+        },
+      },
+    );
+
+    this.hud.onReplayClick(() => this.toggleReplay());
     this.hud.onMenuClick(() => this.openMenu());
     this.hud.onContactTap((x, y) => {
       const k = this.kick.state.kind;
-      if (k === 'aiming' || k === 'charging') this.kick.contact = clampContact(x, y);
+      if (this.online.guest) this.online.guest.setContact(x, y);
+      else if ((k === 'aiming' || k === 'charging') && this.match.isLocal(this.kick.shooter)) this.kick.local.point = clampContact(x, y);
     });
     window.addEventListener('keydown', (e) => this.onKey(e));
     window.addEventListener('resize', () => this.director.refit());
@@ -180,19 +228,28 @@ export class Game {
   /** Open the menu with the latest stats; Resume only while a match is in progress. */
   private openMenu(): void {
     this.menu.setStats(this.stats.summary());
-    this.menu.open(this.matchStarted);
+    this.menu.open(this.canResume);
+  }
+
+  private get canResume(): boolean {
+    return this.matchStarted || this.online.active;
+  }
+
+  /** Replays freeze the game, so there are none online (the other player's would stop too). */
+  private toggleReplay(): void {
+    if (!this.online.active) this.replays.toggle();
   }
 
   private onKey(e: KeyboardEvent): void {
     if (e.code === 'Escape') {
-      if (this.menu.isOpen && this.matchStarted) this.menu.close();
+      if (this.menu.isOpen && this.canResume) this.menu.close();
       else this.openMenu();
       return;
     }
     if (this.menu.isOpen) return;
     if (e.code === 'Space') {
       e.preventDefault();
-      this.replays.toggle();
+      this.toggleReplay();
       return;
     }
     if (this.replays.replay.active) return;
@@ -200,7 +257,7 @@ export class Game {
       this.sound.setMuted(!this.sound.isMuted);
       this.menu.setMuted(this.sound.isMuted);
     }
-    if (!this.debug.keys) return;
+    if (!this.debug.keys || this.online.guest) return;
     if (e.code === 'KeyR') this.match.restart();
     const level = LEVEL_KEYS[e.code];
     if (level) {
@@ -217,13 +274,22 @@ export class Game {
 
   private step(now: number): void {
     const elapsed = Math.min((now - this.last) / 1000, 0.25);
-    // Paused while the menu is open: keep rendering, but no game time passes.
-    const realDt = this.menu.isOpen ? 0 : elapsed * this.debug.timeScale;
+    // Paused while the menu is open: keep rendering, but no game time passes. Online games
+    // don't pause: the other player is still playing.
+    const realDt = this.menu.isOpen && !this.online.active ? 0 : elapsed * this.debug.timeScale;
     this.last = now;
     requestAnimationFrame((t) => this.frame(t));
     // The crowd keeps moving whatever the game is doing (menu, replays, slow motion).
     this.dressCrowd();
     this.stadium.update(elapsed);
+
+    const guest = this.online.guest;
+    if (guest) {
+      const played = guest.update(realDt);
+      this.trail.update(this.ballMesh.position, played, this.camera.position);
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
 
     const replay = this.replays.replay;
     if (replay.active) {
@@ -237,7 +303,9 @@ export class Game {
       this.input.consumeRelease();
     }
 
-    this.director.update(realDt, this.ball.translation(), this.kick.state.kind === 'ballInFlight', this.keeper);
+    const inFlight = this.kick.state.kind === 'ballInFlight';
+    this.director.update(realDt, this.ball.translation(), inFlight, this.keeper);
+    this.online.host?.director.update(realDt, this.ball.translation(), inFlight, this.keeper);
     // Slow motion: the same fixed physics step, just fewer of them per real second.
     const gameDt = realDt * this.director.timeScale;
     this.accumulator += gameDt;
@@ -268,6 +336,7 @@ export class Game {
       if (tag === 'post' || tag === 'bar') {
         this.sound.woodwork(speedIn);
         this.director.shake(speedIn);
+        this.online.host?.director.shake(speedIn);
       }
       if (tag === 'keeper') this.sound.parry(speedIn);
     });
@@ -286,19 +355,26 @@ export class Game {
 
     const kick = this.kick;
     const state = kick.state.kind;
-    const aiming = state === 'aiming' || state === 'charging';
-    const power = state === 'charging' ? kick.power : null;
+    // Aiming on this device (online, the other player aims on theirs).
+    const aiming = (state === 'aiming' || state === 'charging') && this.match.isLocal(kick.shooter);
+    const power = state === 'charging' && aiming ? kick.power : null;
     this.reticle.keeperMode = this.match.keeperAiming;
     this.reticle.visible = aiming || this.match.keeperAiming;
     if (this.match.keeperAiming) this.reticle.update(this.match.keeperAim, 0, 0);
     else this.reticle.update(kick.aim, scatterForPower(power ?? 0), overpower(power ?? 0));
     this.hud.setContact(aiming ? kick.contact : null);
     if (kick.runUp !== null) this.hud.setRunUp(kick.runUp);
-    else this.hud.setPower(state === 'aiming' ? 0 : power);
-    this.hud.setReplay(this.replays.offer);
+    else this.hud.setPower(aiming ? (state === 'aiming' ? 0 : power) : null);
+    this.hud.setReplay(this.online.active ? null : this.replays.offer);
     this.coach();
 
     this.replays.record(gameDt);
+    this.online.host?.sendFrame(performance.now() / 1000, {
+      match: this.match.state.kind,
+      kick: state,
+      shooter: kick.shooter,
+      canDive: this.match.remoteKeeperAiming,
+    });
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -321,13 +397,14 @@ export class Game {
     if (s.elapsed < TUNING.director.kickerCamera.delay) return;
     this.celebrated = true;
     this.director.celebrate(this.kickers.position);
+    this.online.host?.director.celebrate(this.kickers.position);
   }
 
   /** First-time tips: retire the ones the player has just shown they know, then pick one for now. */
   private coach(): void {
     const k = this.kick.state.kind;
     const hints = this.hints;
-    const shooterHuman = this.match.isHuman(this.kick.shooter);
+    const shooterHuman = this.match.isLocal(this.kick.shooter);
     if (shooterHuman && (k === 'striking' || k === 'ballInFlight')) hints.learned('shoot', 'power');
     if (shooterHuman && (this.kick.contact.x !== 0 || this.kick.contact.y !== 0)) hints.learned('spin');
     if (!shooterHuman && !this.keeper.ready) hints.learned('keep');
@@ -338,7 +415,7 @@ export class Game {
       if (shooterHuman && k === 'aiming') tip = hints.retired('shoot') ? 'spin' : 'shoot';
       else if (shooterHuman && k === 'charging') tip = 'power';
       else if (!shooterHuman && !this.match.twoPlayer && k === 'cpuRunUp') tip = 'keep';
-      else if (k === 'result' && this.replays.offer === 'replay') tip = 'replay';
+      else if (k === 'result' && !this.online.active && this.replays.offer === 'replay') tip = 'replay';
     }
     hints.show(tip);
   }
