@@ -4,6 +4,7 @@
 import { Sound } from './audio/sound';
 import { Director } from './camera/director';
 import { Kickers } from './characters/kicker';
+import { loadFigure } from './characters/skinned';
 import { TUNING, type KeeperLevelName } from './config';
 import { PHYSICS_STEP } from './constants';
 import { KeeperKeys } from './input/keeperKeys';
@@ -33,10 +34,12 @@ const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 
 const { renderer, scene, camera, ball: ballMesh, net } = createScene(canvas);
 const { world, ball, events, tags } = await createPhysics();
+// Quaternius' Mannequin (CC0, see ASSETS.md); the built-in figures stand in if it fails to load.
+const figureTemplate = await loadFigure(`${import.meta.env.BASE_URL}models/mannequin.glb`);
 const keeper = new Keeper(world, tags);
-const keeperMesh = new KeeperMesh(keeper);
+const keeperMesh = new KeeperMesh(keeper, figureTemplate);
 scene.add(keeperMesh.object);
-const kickers = new Kickers();
+const kickers = new Kickers(figureTemplate);
 scene.add(kickers.object);
 const hud = new Hud();
 const input = new PointerInput(canvas);

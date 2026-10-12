@@ -4,6 +4,7 @@ import type { Kick } from '../match/kick';
 import type { Side } from '../match/shootout';
 import { TEAMS, type Team } from '../match/teams';
 import { blendPoses, DEFAULT_DIMS, Rig, type Pose } from './rig';
+import { SkinnedFigure, type ClipBlend, type FigureTemplate } from './skinned';
 
 /**
  * The penalty taker for each side: a rigged figure that waits beside the ball, runs in
@@ -24,12 +25,24 @@ export class Kickers {
   /** The team each rig is currently dressed as. */
   private readonly dressed: Record<Side, Team>;
 
-  constructor() {
+  /** The Quaternius models driven by the rigs, when they loaded. */
+  private readonly figures: Record<Side, SkinnedFigure> | null = null;
+
+  constructor(template: FigureTemplate | null) {
     const rig = (side: Side) => {
       const t = TEAMS[side];
       return new Rig(DEFAULT_DIMS, { ...teamColours(t), boots: 0x111111, hands: t.skin, longSleeves: false });
     };
     this.rigs = { player: rig('player'), cpu: rig('cpu') };
+    if (template) {
+      const figure = (side: Side) => {
+        const f = new SkinnedFigure(template, this.rigs[side], DEFAULT_DIMS.height);
+        this.rigs[side].setPartsVisible(false);
+        f.setColours(new THREE.Color(TEAMS[side].colour).getHex(), TEAMS[side].shorts);
+        return f;
+      };
+      this.figures = { player: figure('player'), cpu: figure('cpu') };
+    }
     this.dressed = { ...TEAMS };
     this.object.add(this.rigs.player.root, this.rigs.cpu.root);
   }
@@ -41,6 +54,7 @@ export class Kickers {
       if (this.dressed[side] !== TEAMS[side]) {
         this.dressed[side] = TEAMS[side];
         this.rigs[side].setColours(teamColours(TEAMS[side]));
+        this.figures?.[side].setColours(new THREE.Color(TEAMS[side].colour).getHex(), TEAMS[side].shorts);
       }
     }
     this.clock += dt;
@@ -73,12 +87,19 @@ export class Kickers {
     let z = start.z + dz * a;
 
     let pose: Pose;
+    // With the Quaternius model, its own idle and jog clips take over where they fit: the
+    // jog is played in step with the distance run, so the feet land as the kicker moves.
+    let clip: ClipBlend | undefined;
     if (since === null) {
       const windup = smoothstep(0.7, 0.95, a);
       const running = smoothstep(0, 0.06, a);
       const phase = ((a * length) / K.stride) * 2 * Math.PI;
       pose = blendPoses(standPose(this.clock), runPose(phase), running);
       pose = blendPoses(pose, windupPose(), windup);
+      clip =
+        running > 0.5
+          ? { name: 'Jog_Fwd_Loop', time: (phase / (2 * Math.PI)) * JOG_CYCLE, weight: running * (1 - windup) }
+          : { name: 'Idle_Loop', time: this.clock, weight: 1 - running };
     } else {
       // Contact, follow through, carry on a step and settle.
       pose = blendPoses(contactPose(), followPose(), smoothstep(0.02, 0.3, since));
@@ -92,7 +113,9 @@ export class Kickers {
     const s = kick.state;
     if (s.kind === 'result') {
       const scored = s.outcome.kind === 'goal';
-      pose = blendPoses(pose, scored ? celebratePose(this.clock) : dejectedPose(), smoothstep(0.1, 0.5, s.elapsed));
+      const react = smoothstep(0.1, 0.5, s.elapsed);
+      pose = blendPoses(pose, scored ? celebratePose(this.clock) : dejectedPose(), react);
+      if (scored) clip = { name: 'Dance_Loop', time: this.clock, weight: react };
     }
 
     rig.root.position.set(x, 0, z);
@@ -101,8 +124,12 @@ export class Kickers {
     const spine = pose.joints.spine ?? {};
     pose.joints.spine = { ...spine, z: (spine.z ?? 0) - tellAmount * C.tellLean };
     rig.setPose(pose);
+    this.figures?.[shooter].update(clip);
   }
 }
+
+/** Length (s) of one cycle (two steps) of the Quaternius jog clip. */
+const JOG_CYCLE = 0.93;
 
 function standPose(clock: number): Pose {
   return {

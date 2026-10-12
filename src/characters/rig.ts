@@ -80,6 +80,7 @@ export class Rig {
   readonly joints = {} as Record<Joint, THREE.Group>;
   private readonly materials: Record<'shirt' | 'shorts' | 'socks' | 'boots' | 'skin' | 'hands' | 'sleeves', THREE.MeshStandardMaterial>;
   private readonly hipHeight: number;
+  private readonly parts: THREE.Mesh[] = [];
   private readonly longSleeves: boolean;
   /** Bare hands follow the skin colour; gloves keep their own. */
   private readonly bareHands: boolean;
@@ -178,6 +179,11 @@ export class Rig {
     if (kit.shirt !== undefined) this.setShirt(kit.shirt);
   }
 
+  /** Show or hide the rig's own limbs (hidden when a skinned model is driven by it instead). */
+  setPartsVisible(visible: boolean): void {
+    for (const part of this.parts) part.visible = visible;
+  }
+
   setShirt(colour: number): void {
     this.materials.shirt.color.setHex(colour);
     if (this.longSleeves) this.materials.sleeves.color.setHex(colour);
@@ -198,6 +204,7 @@ export class Rig {
     mesh.position.set(x, y, z);
     mesh.castShadow = true;
     parent.add(mesh);
+    this.parts.push(mesh);
   }
 }
 

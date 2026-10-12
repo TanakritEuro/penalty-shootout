@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { blendPoses, Rig, type Pose } from '../characters/rig';
+import { SkinnedFigure, type FigureTemplate } from '../characters/skinned';
 import {
   KEEPER_ARM_LENGTH,
   KEEPER_HAND_RADIUS,
@@ -18,9 +19,14 @@ import type { Keeper } from './keeper';
 export class KeeperMesh {
   readonly object = new THREE.Group();
   private readonly rig: Rig;
+  /** The Quaternius model, when it loaded; otherwise the rig's own capsule limbs show. */
+  private readonly figure: SkinnedFigure | null = null;
   private clock = 0;
 
-  constructor(private readonly keeper: Keeper) {
+  constructor(
+    private readonly keeper: Keeper,
+    template: FigureTemplate | null,
+  ) {
     this.rig = new Rig(
       {
         height: KEEPER_HEIGHT,
@@ -38,10 +44,22 @@ export class KeeperMesh {
     facing.add(this.rig.root);
     this.object.add(facing);
     this.object.position.z = KEEPER_LINE_OFFSET;
+
+    if (template) {
+      this.figure = new SkinnedFigure(template, this.rig, KEEPER_HEIGHT);
+      this.rig.setPartsVisible(false);
+      // White gloves over the knuckles, where the glove colliders are.
+      for (const side of ['l', 'r']) {
+        const glove = new THREE.Mesh(new THREE.SphereGeometry(KEEPER_HAND_RADIUS, 12, 10), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.6 }));
+        glove.castShadow = true;
+        this.figure.attach(`middle_01_${side}`, glove);
+      }
+    }
   }
 
   setShirt(colour: number): void {
     this.rig.setShirt(colour);
+    this.figure?.setColours(colour, 0x1b1b1f);
   }
 
   /** Copy the physics body and pose the limbs. `dt` is game seconds, for the idle bob. */
@@ -105,5 +123,6 @@ export class KeeperMesh {
       pose.joints.elbowR = { x: 0 };
     }
     this.rig.setPose(pose);
+    this.figure?.update();
   }
 }

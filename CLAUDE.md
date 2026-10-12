@@ -46,8 +46,8 @@ through it rather than with closed-form maths. W / A / S / D set the contact poi
 `net.ts` ripples the net on impact.
 
 Milestone 6 (characters) is in, procedurally: `characters/rig.ts` is a humanoid built in
-code (joint hierarchy, low-poly limbs, kit colours, poses). There are no downloaded models;
-a real `.glb` could replace the rig behind the same pose-driven interface. The keeper mesh
+code (joint hierarchy, low-poly limbs, kit colours, poses); it now drives Quaternius'
+Mannequin (see below) rather than being shown itself. The keeper mesh
 is posed from the physics pose (gloves sit on the glove colliders). `characters/kicker.ts`
 derives the kicker's run-up, strike, follow-through and reaction from the Kick (`approach`,
 `sinceStrike`), so the boot meets the ball on the launch step; the player's release starts
@@ -65,8 +65,11 @@ phone-sized screens and the director widens the field of view on narrow ones (`f
 All seven roadmap milestones are done. Since then: modes (`match/session.ts`: friendly, a
 three-round cup, two players on one keyboard), saved stats (`match/stats.ts`, localStorage),
 end-of-shootout highlights (every kick's clip, played back to back), Vitest tests and a
-GitHub Actions workflow that tests, builds and deploys to GitHub Pages. What's left is
-playtesting and tuning.
+GitHub Actions workflow that tests, builds and deploys to GitHub Pages, and Quaternius'
+Mannequin as the kicker and keeper model (`characters/skinned.ts`: the procedural rig still
+computes every pose and drives the model's skeleton; the model's idle, jog and dance clips
+blend in where they fit; the capsule rig shows if the model fails to load). Rebuild the
+model with `scripts/prepare-models.mjs`. What's left is playtesting and tuning.
 
 ## Layout
 
@@ -84,7 +87,9 @@ playtesting and tuning.
   (saved record), `teams.ts` (invented teams and kits).
 - `src/keeper/` — keeper body and state machine (`keeper.ts`), dive decision (`brain.ts`),
   pose maths and reach limit (`pose.ts`), rigged mesh posed from the physics (`mesh.ts`).
-- `src/characters/` — procedural humanoid rig (`rig.ts`) and the animated kickers (`kicker.ts`).
+- `src/characters/` — procedural humanoid rig (`rig.ts`) that computes every pose, the skinned
+  Quaternius model it drives (`skinned.ts`) and the animated kickers (`kicker.ts`).
+- `public/models/` — the trimmed character model; `scripts/prepare-models.mjs` rebuilds it.
 - `src/camera/director.ts` — main / keeper's-eye cameras, close-call cuts and slow motion.
 - `src/ui/hud.ts` — DOM HUD (power meter, spin widget, result banner, scoreboard, replay button).
 - `src/ui/menu.ts` — start / pause menu: teams, CPU keeper level, sound.
