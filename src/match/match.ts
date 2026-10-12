@@ -139,7 +139,8 @@ export class Match {
     );
   }
 
-  private isHuman(side: Side): boolean {
+  /** Whether `side` is played by a person (both are, with two players). */
+  isHuman(side: Side): boolean {
     return this.setup.twoPlayer || side === 'player';
   }
 

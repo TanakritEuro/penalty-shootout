@@ -22,8 +22,8 @@ browser and shown in the menu. The menu also has an afternoon or floodlit night 
 **Lite** graphics for slower devices (the default on phones and tablets).
 
 **Shooting:** move the mouse to aim, hold the left button to charge the power meter and
-release to shoot. Charging into the red zone overpowers the shot so it drifts high and
-wide. **W / A / S / D** move where you strike the ball (the dot in the little ball by the
+release to shoot. Let go in the bright band (the meter glows) for full pace on target;
+charging into the red zone overpowers the shot so it drifts high and wide. **W / A / S / D** move where you strike the ball (the dot in the little ball by the
 meter): hit it off-centre to curl it, at the cost of some pace and accuracy. Curling it away
 from the keeper fools them; bending it in towards them doesn't.
 
@@ -44,7 +44,7 @@ lift to shoot; tap the little ball to set spin; tap in the goal to dive; ☰ ope
 Play it online at https://tanakriteuro.github.io/penalty-shootout/ (every push to `main` redeploys).
 
 **Debugging:** add `?debug` to the URL for **R** (restart the shootout) and **1 / 2 / 3** (CPU
-keeper level), `?timescale=0.1` to run the whole game at a tenth of the speed, and `?stats` for
+keeper level), `?hints` to see the first-time tips again, `?timescale=0.1` to run the whole game at a tenth of the speed, and `?stats` for
 frame rate, frame time, draw calls and triangles.
 
 See `CLAUDE.md` for the architecture, conventions and roadmap.

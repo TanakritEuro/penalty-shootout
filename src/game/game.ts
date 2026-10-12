@@ -4,7 +4,7 @@ import { Sound } from '../audio/sound';
 import { Director } from '../camera/director';
 import { Kickers } from '../characters/kicker';
 import { loadFigure } from '../characters/skinned';
-import type { KeeperLevelName } from '../config';
+import { TUNING, type KeeperLevelName } from '../config';
 import { PHYSICS_STEP } from '../constants';
 import { KeeperKeys } from '../input/keeperKeys';
 import { PointerInput } from '../input/pointer';
@@ -26,6 +26,8 @@ import { applyAero } from '../shooting/aero';
 import { Reticle } from '../shooting/aim';
 import { overpower, scatterForPower } from '../shooting/power';
 import { clampContact } from '../shooting/spin';
+import { BallTrail } from '../trail';
+import { Hints, type HintId } from '../ui/hints';
 import { Hud } from '../ui/hud';
 import { Menu } from '../ui/menu';
 import { readDebugOptions, StatsOverlay, type DebugOptions } from './debug';
@@ -69,6 +71,10 @@ export class Game {
   private readonly debug: DebugOptions;
   private readonly statsOverlay: StatsOverlay | null;
   private readonly stadium = new Stadium();
+  private readonly trail = new BallTrail();
+  private readonly hints: Hints;
+  /** The kicker-cam has cut to this kick's scorer. */
+  private celebrated = false;
   private readonly setNight: (night: boolean) => void;
   /** The teams the crowd is dressed for, to notice when the matchup changes. */
   private dressedFor: string | null = null;
@@ -99,11 +105,12 @@ export class Game {
     this.tags = physics.tags;
     this.debug = readDebugOptions(location.search);
     this.statsOverlay = this.debug.stats ? new StatsOverlay() : null;
+    this.hints = new Hints(this.debug.hints);
 
     this.keeper = new Keeper(this.world, this.tags);
     this.keeperMesh = new KeeperMesh(this.keeper, figure);
     this.kickers = new Kickers(figure);
-    this.scene.add(this.keeperMesh.object, this.kickers.object, this.reticle.object, this.stadium.object);
+    this.scene.add(this.keeperMesh.object, this.kickers.object, this.reticle.object, this.stadium.object, this.trail.object);
     // The crowd you see follows the crowd you hear.
     this.sound.onReact = (kind) => this.stadium.react(kind);
 
@@ -224,7 +231,7 @@ export class Game {
       if (this.input.consumePress()) replay.finish();
       else replay.update(realDt);
       if (replay.active) {
-        this.renderReplay();
+        this.renderReplay(realDt * replay.playbackSpeed);
         return;
       }
       this.input.consumeRelease();
@@ -238,6 +245,7 @@ export class Game {
       this.fixedStep();
       this.accumulator -= PHYSICS_STEP;
     }
+    this.celebrate();
     this.render(gameDt);
   }
 
@@ -257,7 +265,10 @@ export class Game {
         this.net.hit(this.ball.translation(), speedIn);
         this.sound.net(speedIn);
       }
-      if (tag === 'post' || tag === 'bar') this.sound.woodwork(speedIn);
+      if (tag === 'post' || tag === 'bar') {
+        this.sound.woodwork(speedIn);
+        this.director.shake(speedIn);
+      }
       if (tag === 'keeper') this.sound.parry(speedIn);
     });
     this.match.step(PHYSICS_STEP);
@@ -269,6 +280,7 @@ export class Game {
     const r = this.ball.rotation();
     this.ballMesh.position.set(p.x, p.y, p.z);
     this.ballMesh.quaternion.set(r.x, r.y, r.z, r.w);
+    this.trail.update(this.ballMesh.position, gameDt, this.camera.position);
     this.keeperMesh.update(gameDt);
     this.kickers.update(gameDt, this.kick);
 
@@ -284,6 +296,7 @@ export class Game {
     if (kick.runUp !== null) this.hud.setRunUp(kick.runUp);
     else this.hud.setPower(state === 'aiming' ? 0 : power);
     this.hud.setReplay(this.replays.offer);
+    this.coach();
 
     this.replays.record(gameDt);
     this.renderer.render(this.scene, this.camera);
@@ -297,8 +310,42 @@ export class Game {
     this.stadium.setTeams(TEAMS.player.colour, TEAMS.cpu.colour);
   }
 
-  /** A replay frame: the recorder poses the scene; nothing live is updated. */
-  private renderReplay(): void {
+  /** A human kicker's goal: once the result has been up a moment, cut to them celebrating. */
+  private celebrate(): void {
+    const s = this.kick.state;
+    if (s.kind !== 'result') {
+      this.celebrated = false;
+      return;
+    }
+    if (this.celebrated || s.outcome.kind !== 'goal' || !this.match.isHuman(this.kick.shooter)) return;
+    if (s.elapsed < TUNING.director.kickerCamera.delay) return;
+    this.celebrated = true;
+    this.director.celebrate(this.kickers.position);
+  }
+
+  /** First-time tips: retire the ones the player has just shown they know, then pick one for now. */
+  private coach(): void {
+    const k = this.kick.state.kind;
+    const hints = this.hints;
+    const shooterHuman = this.match.isHuman(this.kick.shooter);
+    if (shooterHuman && (k === 'striking' || k === 'ballInFlight')) hints.learned('shoot', 'power');
+    if (shooterHuman && (this.kick.contact.x !== 0 || this.kick.contact.y !== 0)) hints.learned('spin');
+    if (!shooterHuman && !this.keeper.ready) hints.learned('keep');
+    if (this.replays.replay.active) hints.learned('replay');
+
+    let tip: HintId | null = null;
+    if (this.match.state.kind === 'kicking') {
+      if (shooterHuman && k === 'aiming') tip = hints.retired('shoot') ? 'spin' : 'shoot';
+      else if (shooterHuman && k === 'charging') tip = 'power';
+      else if (!shooterHuman && !this.match.twoPlayer && k === 'cpuRunUp') tip = 'keep';
+      else if (k === 'result' && this.replays.offer === 'replay') tip = 'replay';
+    }
+    hints.show(tip);
+  }
+
+  /** A replay frame (`dt`: seconds of the recording played): the recorder poses the scene. */
+  private renderReplay(dt: number): void {
+    this.trail.update(this.ballMesh.position, dt, this.camera.position);
     this.reticle.visible = false;
     this.hud.setReplaying(this.replays.replay.caption);
     this.renderer.render(this.scene, this.camera);

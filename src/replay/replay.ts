@@ -22,6 +22,11 @@ export class Replay {
     private readonly net: Net,
   ) {}
 
+  /** Playback speed (fraction of real time) of what's playing. */
+  get playbackSpeed(): number {
+    return this.speed;
+  }
+
   get active(): boolean {
     return this.playing;
   }

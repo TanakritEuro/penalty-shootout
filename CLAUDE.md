@@ -70,13 +70,18 @@ Mannequin as the kicker and keeper model (`characters/skinned.ts`: the procedura
 computes every pose and drives the model's skeleton; the model's idle, jog and dance clips
 blend in where they fit; the capsule rig shows if the model fails to load). Rebuild the
 model with `scripts/prepare-models.mjs`. A stadium surrounds the pitch (`stadium.ts`), with a
-night option and Full / Lite graphics. What's left is playtesting and tuning.
+night option and Full / Lite graphics. Feedback: a faint trail behind hard shots (`trail.ts`),
+camera shake off the woodwork, a cut to the scorer celebrating after a human's goal
+(`director.celebrate`), a sweet-spot band on the power meter and first-time tips
+(`ui/hints.ts`, shown until acted on or twice, remembered per browser). What's left is
+playtesting and tuning.
 
 ## Layout
 
 - `src/constants.ts` — real-world dimensions and physics constants. Use these, never magic numbers.
 - `src/scene.ts` — Three.js renderer, camera, lights, pitch, markings, goal frame.
 - `src/net.ts` — goal net panels and their ripple.
+- `src/trail.ts` — the streak behind hard shots (follows the ball mesh, so replays have it too).
 - `src/stadium.ts` — stands, the instanced crowd (animated in its vertex shader), ad boards with
   invented sponsors, floodlights.
 - `src/physics.ts` — Rapier world and colliders.
@@ -98,6 +103,7 @@ night option and Full / Lite graphics. What's left is playtesting and tuning.
 - `public/models/` — the trimmed character model; `scripts/prepare-models.mjs` rebuilds it.
 - `src/camera/director.ts` — main / keeper's-eye cameras, close-call cuts and slow motion.
 - `src/ui/hud.ts` — DOM HUD (power meter, spin widget, result banner, scoreboard, replay button).
+- `src/ui/hints.ts` — first-time tips; `Game.coach()` decides which one fits the moment.
 - `src/ui/menu.ts` — start / pause menu: teams, CPU keeper level, sound.
 - `src/audio/sound.ts` — synthesised crowd and sound effects.
 - `src/replay/` — per-kick recorder (clips) and playback of a replay or the highlights reel.
@@ -131,7 +137,7 @@ characters), put them under `public/`, and record each one with its licence in
   headless Rapier (`tests/helpers.ts` fires real shots); statistical ones seed `Math.random`.
 - CI (`.github/workflows/deploy.yml`) runs both on every push and pull request, and deploys
   `main` to GitHub Pages.
-- `?stats` shows fps, frame time, draw calls and triangles. The scene is ~310k triangles and
+- `?hints` shows the first-time tips again. `?stats` shows fps, frame time, draw calls and triangles. The scene is ~310k triangles and
   65 draw calls on Full, ~156k and 55 on Lite; keep an eye on these when adding to it.
 - For visual or gameplay changes, run the dev server and check it in a browser
   (screenshot if possible) before calling something done. Check the console for errors.

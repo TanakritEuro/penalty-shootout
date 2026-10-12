@@ -18,6 +18,7 @@ export class Hud {
   private readonly powerFill = el<HTMLDivElement>('power-fill');
   private readonly powerLabel = el<HTMLDivElement>('power-label');
   private readonly powerDanger = el<HTMLDivElement>('power-danger');
+  private readonly powerSweet = el<HTMLDivElement>('power-sweet');
   private readonly contact = el<HTMLDivElement>('contact');
   private readonly contactDot = el<HTMLDivElement>('contact-dot');
   private readonly root = el<HTMLDivElement>('hud');
@@ -26,7 +27,10 @@ export class Hud {
   private readonly replayLabel = el<HTMLSpanElement>('replay-label');
 
   constructor() {
-    this.powerDanger.style.width = `${(1 - TUNING.shooting.overpowerThreshold) * 100}%`;
+    const S = TUNING.shooting;
+    this.powerDanger.style.width = `${(1 - S.overpowerThreshold) * 100}%`;
+    this.powerSweet.style.left = `${S.sweetSpot * 100}%`;
+    this.powerSweet.style.width = `${(S.overpowerThreshold - S.sweetSpot) * 100}%`;
   }
 
   setStatus(text: string): void {
@@ -86,17 +90,19 @@ export class Hud {
     });
   }
 
-  /** Show the meter at `power` (0–1), or hide it with null. */
   /** Show the power meter at `power` (0–1), or hide it with null. */
   setPower(power: number | null): void {
     this.showMeter(power, 'POWER', true);
-    if (power !== null) this.powerFill.classList.toggle('over', power > TUNING.shooting.overpowerThreshold);
+    const S = TUNING.shooting;
+    this.powerFill.classList.toggle('over', power !== null && power > S.overpowerThreshold);
+    this.power.classList.toggle('sweet', power !== null && power >= S.sweetSpot && power <= S.overpowerThreshold);
   }
 
   /** Reuse the meter as the CPU's run-up: when it fills, the ball is struck. Null hides it. */
   setRunUp(progress: number | null): void {
     this.showMeter(progress, 'KICK', false);
     this.powerFill.classList.remove('over');
+    this.power.classList.remove('sweet');
   }
 
   private showMeter(value: number | null, label: string, showDanger: boolean): void {
@@ -104,6 +110,7 @@ export class Hud {
     if (value === null) return;
     this.powerLabel.textContent = label;
     this.powerDanger.hidden = !showDanger;
+    this.powerSweet.hidden = !showDanger;
     this.powerFill.style.width = `${value * 100}%`;
   }
 

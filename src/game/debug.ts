@@ -6,12 +6,14 @@ export interface DebugOptions {
   timeScale: number;
   /** `?stats`: an overlay with frame rate, frame time, draw calls and triangles. */
   stats: boolean;
+  /** `?hints`: show the first-time tips again, as if this browser had never played. */
+  hints: boolean;
 }
 
 export function readDebugOptions(search: string): DebugOptions {
   const params = new URLSearchParams(search);
   const timeScale = Number(params.get('timescale') ?? 1);
-  return { keys: params.has('debug'), timeScale: timeScale > 0 ? timeScale : 1, stats: params.has('stats') };
+  return { keys: params.has('debug'), timeScale: timeScale > 0 ? timeScale : 1, stats: params.has('stats'), hints: params.has('hints') };
 }
 
 /** Rolling frame statistics, shown in a corner overlay when `?stats` is on. */

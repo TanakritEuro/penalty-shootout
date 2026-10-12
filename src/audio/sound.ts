@@ -86,11 +86,22 @@ export class Sound {
     this.noiseBurst(t, 0.03, 4000, 'highpass', 0.3 * level);
   }
 
-  /** Ball into the net: a soft swish. */
+  /**
+   * Ball into the net: a swish, a soft thump as the mesh takes the ball, and a rustle of
+   * the net rippling out and settling.
+   */
   net(speed: number): void {
     const t = this.now();
     if (t === null || speed < 2) return;
-    this.noiseBurst(t, 0.35, 2500, 'highpass', Math.min(0.5, speed / 50));
+    const level = Math.min(1, speed / 28);
+    this.noiseBurst(t, 0.35, 2500, 'highpass', 0.5 * level);
+    const thump = this.osc('sine', 95, t);
+    thump.frequency.exponentialRampToValueAtTime(55, t + 0.12);
+    this.envelope(thump, t, 0.01, 0.18, 0.45 * level);
+    for (let i = 0; i < 5; i++) {
+      const at = t + 0.06 + i * (0.05 + 0.03 * Math.random());
+      this.noiseBurst(at, 0.07, 1400 + 600 * Math.random(), 'bandpass', 0.22 * level * (1 - i / 6));
+    }
   }
 
   /** Ball off the keeper's gloves or body: a dull slap. */

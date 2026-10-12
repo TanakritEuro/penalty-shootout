@@ -111,6 +111,31 @@ body {
   background: repeating-linear-gradient(-45deg, rgba(255, 59, 48, 0.35) 0 6px, rgba(255, 59, 48, 0.15) 6px 12px);
 }
 
+/* The sweet spot just short of it: real pace, no drift. The track glows while you're in it. */
+#power-sweet {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.14);
+  z-index: 1;
+}
+
+#power.sweet #power-track {
+  animation: sweet 0.32s ease-in-out infinite alternate;
+}
+
+@keyframes sweet {
+  from {
+    border-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 rgba(255, 214, 10, 0);
+  }
+  to {
+    border-color: #ffd60a;
+    box-shadow: 0 0 14px rgba(255, 214, 10, 0.85);
+  }
+}
+
 #power-fill {
   position: absolute;
   top: 0;
@@ -399,6 +424,33 @@ body {
   opacity: 0.7;
 }
 
+/* First-time tips, on the empty grass bottom right: clear of the ball, kicker and meter. */
+#hint {
+  position: absolute;
+  right: 24px;
+  bottom: 28px;
+  max-width: min(340px, 30vw);
+  padding: 8px 14px;
+  border-left: 4px solid #ffd60a;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  font-size: 15px;
+  line-height: 1.35;
+  animation: hint-in 0.3s ease-out;
+}
+
+#hint b {
+  color: #ffd60a;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+#hint[hidden],
 #replay-tag[hidden],
 #replay-btn[hidden] {
   display: none;
@@ -407,7 +459,8 @@ body {
 #hud.replaying #result,
 #hud.replaying #power,
 #hud.replaying #contact,
-#hud.replaying #status {
+#hud.replaying #status,
+#hud.replaying #hint {
   visibility: hidden;
 }
 
@@ -548,6 +601,11 @@ body {
   #replay-btn {
     bottom: 76px;
   }
+
+  #hint {
+    right: 10px;
+    font-size: 13px;
+  }
 }
 
 /* Phone in landscape: there is room across the top but not below it. */
@@ -562,6 +620,10 @@ body {
 
   #replay-btn {
     bottom: 34px;
+  }
+
+  #hint {
+    bottom: 40px;
   }
 
   #status {
@@ -628,4 +690,15 @@ body {
   min-height: 28px;
   padding: 3px 10px;
   font-size: 12px;
+}
+
+/* Upright phone: no room beside the meter, so above it, across the screen. */
+@media (max-width: 640px) {
+  #hint {
+    left: 5vw;
+    right: 5vw;
+    bottom: 122px;
+    max-width: none;
+    text-align: center;
+  }
 }

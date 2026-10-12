@@ -25,6 +25,11 @@ export const TUNING = {
     baseScatter: 0.08,
     /** Random scatter (m, standard deviation) added at full overpower. */
     overpowerScatter: 0.35,
+    /**
+     * Bottom of the meter's sweet spot: from here up to overpowerThreshold the shot has
+     * real pace and no drift. The meter marks the band and pulses while you're in it.
+     */
+    sweetSpot: 0.6,
   },
   spin: {
     /**
@@ -180,6 +185,16 @@ export const TUNING = {
     frequency: 16,
     wavenumber: 5,
   },
+  trail: {
+    /** A faint streak follows the ball above minSpeed (m/s), at full strength from fullSpeed. */
+    minSpeed: 21,
+    fullSpeed: 28,
+    /** How long (game seconds) a point of the trail lasts: its length is speed × life. */
+    life: 0.12,
+    /** Width (m) at the ball, and opacity at full strength. */
+    width: 0.16,
+    opacity: 0.45,
+  },
   stadium: {
     /** Fraction of seats with a fan in them (0–1). Lower it for weaker devices. */
     crowdDensity: 0.85,
@@ -215,6 +230,16 @@ export const TUNING = {
     /** End-of-shootout highlights: every kick in a row, at this speed (fraction of real time). */
     highlightSpeed: 1,
     replayLead: 1.2,
+    /**
+     * Camera shake when the ball hits the post or bar: peak angle (rad) for a ball arriving
+     * at referenceSpeed (m/s), how fast it dies away (s) and how fast it shakes (Hz).
+     */
+    shake: { angle: 0.012, referenceSpeed: 25, decay: 0.22, frequency: 24 },
+    /**
+     * After a human kicker scores: this long (game seconds) into the result, cut to a camera
+     * in front of them (offset from their feet, m) that pushes slowly in towards them.
+     */
+    kickerCamera: { delay: 0.7, x: 1.4, y: 1.5, z: -4.8, lookY: 1.1, push: 1.3, pushTime: 2.5, fov: 36 },
   },
   camera: {
     /** Vertical field of view (degrees). Narrower makes the goal bigger but crops the ball. */

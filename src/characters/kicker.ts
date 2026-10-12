@@ -47,6 +47,11 @@ export class Kickers {
     this.object.add(this.rigs.player.root, this.rigs.cpu.root);
   }
 
+  /** Where the kicker taking the current kick is standing (their feet). */
+  get position(): THREE.Vector3 {
+    return (this.rigs.player.root.visible ? this.rigs.player : this.rigs.cpu).root.position;
+  }
+
   /** Pose the kicker taking `kick`. `dt` is game seconds. */
   update(dt: number, kick: Kick): void {
     // The menu may have picked new teams since the last frame.
