@@ -16,6 +16,8 @@ export class Sound {
   private noise: AudioBuffer | null = null;
   private crowd: GainNode | null = null;
   private muted: boolean;
+  /** Called on every crowd reaction, so the crowd you see can react with the crowd you hear. */
+  onReact?: (kind: CrowdReaction) => void;
 
   constructor() {
     this.muted = readMuted();
@@ -100,6 +102,7 @@ export class Sound {
 
   /** The crowd reacts: a cheer, a bigger roar, a groan or an "ooh". */
   react(kind: CrowdReaction): void {
+    this.onReact?.(kind);
     const t = this.now();
     if (t === null || !this.ctx || !this.master || !this.noise) return;
     const shape: Record<CrowdReaction, { from: number; to: number; q: number; attack: number; length: number; level: number }> = {

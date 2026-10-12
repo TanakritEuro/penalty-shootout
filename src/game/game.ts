@@ -20,6 +20,7 @@ import type { Net } from '../net';
 import { createPhysics, type Physics } from '../physics';
 import { Recorder } from '../replay/recorder';
 import { Replay } from '../replay/replay';
+import { Stadium } from '../stadium';
 import { createScene, type GameScene } from '../scene';
 import { applyAero } from '../shooting/aero';
 import { Reticle } from '../shooting/aim';
@@ -27,7 +28,8 @@ import { overpower, scatterForPower } from '../shooting/power';
 import { clampContact } from '../shooting/spin';
 import { Hud } from '../ui/hud';
 import { Menu } from '../ui/menu';
-import { readDebugOptions, type DebugOptions } from './debug';
+import { readDebugOptions, StatsOverlay, type DebugOptions } from './debug';
+import { applyGraphics, saveLite, savedLite } from './graphics';
 import { Replays } from './replays';
 
 const LEVEL_KEYS: Record<string, KeeperLevelName> = { Digit1: 'easy', Digit2: 'normal', Digit3: 'hard' };
@@ -65,6 +67,11 @@ export class Game {
   private readonly menu: Menu;
   private readonly replays: Replays;
   private readonly debug: DebugOptions;
+  private readonly statsOverlay: StatsOverlay | null;
+  private readonly stadium = new Stadium();
+  private readonly setNight: (night: boolean) => void;
+  /** The teams the crowd is dressed for, to notice when the matchup changes. */
+  private dressedFor: string | null = null;
 
   /** A match has been kicked off (so the menu can offer Resume). */
   private matchStarted = false;
@@ -85,16 +92,20 @@ export class Game {
     this.camera = s.camera;
     this.ballMesh = s.ball;
     this.net = s.net;
+    this.setNight = s.setNight;
     this.world = physics.world;
     this.ball = physics.ball;
     this.events = physics.events;
     this.tags = physics.tags;
     this.debug = readDebugOptions(location.search);
+    this.statsOverlay = this.debug.stats ? new StatsOverlay() : null;
 
     this.keeper = new Keeper(this.world, this.tags);
     this.keeperMesh = new KeeperMesh(this.keeper, figure);
     this.kickers = new Kickers(figure);
-    this.scene.add(this.keeperMesh.object, this.kickers.object, this.reticle.object);
+    this.scene.add(this.keeperMesh.object, this.kickers.object, this.reticle.object, this.stadium.object);
+    // The crowd you see follows the crowd you hear.
+    this.sound.onReact = (kind) => this.stadium.react(kind);
 
     this.input = new PointerInput(canvas);
     this.kick = new Kick(this.ball, this.input, this.camera, new SpinKeys());
@@ -111,7 +122,7 @@ export class Game {
     });
     // The menu starts the game and pauses it (Esc).
     this.menu = new Menu(
-      { mode: 'friendly', teams: { ...TEAMS }, level: this.keeper.level, muted: this.sound.isMuted },
+      { mode: 'friendly', teams: { ...TEAMS }, level: this.keeper.level, muted: this.sound.isMuted, lite: savedLite() },
       {
         onPlay: (choice) => {
           this.sound.unlock(); // inside a click: browsers only start audio from a user gesture
@@ -124,6 +135,14 @@ export class Game {
         onResetStats: () => {
           this.stats.reset();
           this.menu.setStats(this.stats.summary());
+        },
+        onNight: (night) => {
+          this.setNight(night);
+          this.stadium.setNight(night);
+        },
+        onLite: (lite) => {
+          saveLite(lite);
+          applyGraphics(this.renderer, this.scene, this.stadium, lite);
         },
       },
     );
@@ -141,6 +160,7 @@ export class Game {
     window.addEventListener('keydown', (e) => this.onKey(e));
     window.addEventListener('resize', () => this.director.refit());
     this.hud.setKeeperLevel(this.keeper.level, this.debug.keys);
+    applyGraphics(this.renderer, this.scene, this.stadium, savedLite());
   }
 
   /** Show the menu and start the loop. */
@@ -183,10 +203,20 @@ export class Game {
   }
 
   private frame(now: number): void {
+    const started = performance.now();
+    this.step(now);
+    this.statsOverlay?.frame(performance.now() - started, this.renderer.info.render);
+  }
+
+  private step(now: number): void {
+    const elapsed = Math.min((now - this.last) / 1000, 0.25);
     // Paused while the menu is open: keep rendering, but no game time passes.
-    const realDt = this.menu.isOpen ? 0 : Math.min((now - this.last) / 1000, 0.25) * this.debug.timeScale;
+    const realDt = this.menu.isOpen ? 0 : elapsed * this.debug.timeScale;
     this.last = now;
     requestAnimationFrame((t) => this.frame(t));
+    // The crowd keeps moving whatever the game is doing (menu, replays, slow motion).
+    this.dressCrowd();
+    this.stadium.update(elapsed);
 
     const replay = this.replays.replay;
     if (replay.active) {
@@ -257,6 +287,14 @@ export class Game {
 
     this.replays.record(gameDt);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Re-dress the crowd when the matchup changes (a new match or cup round). */
+  private dressCrowd(): void {
+    const key = `${TEAMS.player.name}|${TEAMS.cpu.name}`;
+    if (key === this.dressedFor) return;
+    this.dressedFor = key;
+    this.stadium.setTeams(TEAMS.player.colour, TEAMS.cpu.colour);
   }
 
   /** A replay frame: the recorder poses the scene; nothing live is updated. */

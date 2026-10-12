@@ -12,6 +12,10 @@ export interface MenuEvents {
   onSound: (muted: boolean) => void;
   /** The player asked to wipe their saved stats. */
   onResetStats: () => void;
+  /** Daylight or floodlights. */
+  onNight: (night: boolean) => void;
+  /** Full graphics, or Lite for weaker devices. */
+  onLite: (lite: boolean) => void;
 }
 
 const LEVELS: readonly KeeperLevelName[] = ['easy', 'normal', 'hard'];
@@ -35,17 +39,22 @@ export class Menu {
   private readonly levelRow: HTMLDivElement;
   private readonly levelButtons: HTMLButtonElement[] = [];
   private readonly soundButton: HTMLButtonElement;
+  private readonly timeButtons: HTMLButtonElement[] = [];
+  private night = false;
+  private readonly graphicsButtons: HTMLButtonElement[] = [];
+  private lite: boolean;
   private readonly statsLine: HTMLDivElement;
   private readonly statsRow: HTMLDivElement;
   private muted: boolean;
   private choice: SessionChoice;
 
   constructor(
-    initial: SessionChoice & { muted: boolean },
+    initial: SessionChoice & { muted: boolean; lite: boolean },
     private readonly events: MenuEvents,
   ) {
     this.choice = { mode: initial.mode, teams: { ...initial.teams }, level: initial.level };
     this.muted = initial.muted;
+    this.lite = initial.lite;
 
     const panel = el('div', 'menu-panel');
     const title = el('h1');
@@ -100,6 +109,36 @@ export class Menu {
     });
     sound.row.append(this.soundButton);
     panel.append(sound.row);
+
+    const time = row('Kick-off');
+    const times = el('div', 'menu-seg');
+    for (const night of [false, true]) {
+      const b = button('menu-time', () => {
+        this.night = night;
+        this.events.onNight(night);
+        this.refresh();
+      });
+      b.textContent = night ? 'Night (floodlights)' : 'Afternoon';
+      this.timeButtons.push(b);
+      times.append(b);
+    }
+    time.row.append(times);
+    panel.append(time.row);
+
+    const graphics = row('Graphics');
+    const gfx = el('div', 'menu-seg');
+    for (const lite of [false, true]) {
+      const b = button('menu-graphics', () => {
+        this.lite = lite;
+        this.events.onLite(lite);
+        this.refresh();
+      });
+      b.textContent = lite ? 'Lite (faster)' : 'Full';
+      this.graphicsButtons.push(b);
+      gfx.append(b);
+    }
+    graphics.row.append(gfx);
+    panel.append(graphics.row);
 
     const stats = row('Your record');
     this.statsRow = stats.row;
@@ -186,6 +225,8 @@ export class Menu {
     this.levelRow.hidden = mode !== 'friendly';
     this.levelButtons.forEach((b, i) => b.classList.toggle('selected', LEVELS[i] === this.choice.level));
 
+    this.timeButtons.forEach((b, i) => b.classList.toggle('selected', (i === 1) === this.night));
+    this.graphicsButtons.forEach((b, i) => b.classList.toggle('selected', (i === 1) === this.lite));
     this.soundButton.textContent = this.muted ? 'Off' : 'On';
     this.soundButton.classList.toggle('selected', !this.muted);
   }

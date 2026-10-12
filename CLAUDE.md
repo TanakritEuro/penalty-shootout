@@ -69,18 +69,22 @@ GitHub Actions workflow that tests, builds and deploys to GitHub Pages, and Quat
 Mannequin as the kicker and keeper model (`characters/skinned.ts`: the procedural rig still
 computes every pose and drives the model's skeleton; the model's idle, jog and dance clips
 blend in where they fit; the capsule rig shows if the model fails to load). Rebuild the
-model with `scripts/prepare-models.mjs`. What's left is playtesting and tuning.
+model with `scripts/prepare-models.mjs`. A stadium surrounds the pitch (`stadium.ts`), with a
+night option and Full / Lite graphics. What's left is playtesting and tuning.
 
 ## Layout
 
 - `src/constants.ts` — real-world dimensions and physics constants. Use these, never magic numbers.
 - `src/scene.ts` — Three.js renderer, camera, lights, pitch, markings, goal frame.
 - `src/net.ts` — goal net panels and their ripple.
+- `src/stadium.ts` — stands, the instanced crowd (animated in its vertex shader), ad boards with
+  invented sponsors, floodlights.
 - `src/physics.ts` — Rapier world and colliders.
 - `src/config.ts` — `TUNING`: every gameplay knob (power, spin, curve, keepers, camera, slow motion, net).
 - `src/main.ts` — entry point: builds the `Game` and starts it.
 - `src/game/` — `game.ts` (wires everything; frame loop: fixed physics steps, then render),
-  `replays.ts` (per-kick recording, replay and highlights offers), `debug.ts` (URL debug flags).
+  `replays.ts` (per-kick recording, replay and highlights offers), `debug.ts` (URL debug flags and
+  the `?stats` overlay), `graphics.ts` (Full / Lite graphics, remembered per browser).
 - `src/input/` — pointer input, keeper arrow keys and spin keys, latched for the fixed step.
 - `src/shooting/` — aim and reticle, power model, spin, aerodynamics, launch solver, outcome
   tracker, CPU kicker.
@@ -127,6 +131,8 @@ characters), put them under `public/`, and record each one with its licence in
   headless Rapier (`tests/helpers.ts` fires real shots); statistical ones seed `Math.random`.
 - CI (`.github/workflows/deploy.yml`) runs both on every push and pull request, and deploys
   `main` to GitHub Pages.
+- `?stats` shows fps, frame time, draw calls and triangles. The scene is ~310k triangles and
+  65 draw calls on Full, ~156k and 55 on Lite; keep an eye on these when adding to it.
 - For visual or gameplay changes, run the dev server and check it in a browser
   (screenshot if possible) before calling something done. Check the console for errors.
 - Game feel (power curve, keeper difficulty, camera) can't be judged by reading code.

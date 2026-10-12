@@ -20,7 +20,12 @@ export interface GameScene {
   camera: THREE.PerspectiveCamera;
   ball: THREE.Mesh;
   net: Net;
+  /** Daylight, or a dark sky under floodlights. */
+  setNight(night: boolean): void;
 }
+
+const DAY = { fogNear: 60, fogFar: 140, sky: 0x87b5e0, hemiSky: 0xdfefff, hemiGround: 0x2d5a27, hemi: 0.9, sun: 0xffffff, sunIntensity: 2.2 };
+const NIGHT = { fogNear: 18, fogFar: 85, sky: 0x0a1428, hemiSky: 0x6f7fa6, hemiGround: 0x16301a, hemi: 0.45, sun: 0xf1f4ff, sunIntensity: 2.6 };
 
 export function createScene(canvas: HTMLCanvasElement): GameScene {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -39,7 +44,7 @@ export function createScene(canvas: HTMLCanvasElement): GameScene {
   camera.position.set(0, cam.height, PENALTY_SPOT_Z + cam.behindSpot);
   camera.lookAt(0, cam.lookAtHeight, 0);
 
-  addLights(scene);
+  const lights = addLights(scene);
   scene.add(createPitch());
   scene.add(createMarkings());
   scene.add(createGoal());
@@ -59,11 +64,28 @@ export function createScene(canvas: HTMLCanvasElement): GameScene {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  return { renderer, scene, camera, ball, net };
+  const setNight = (night: boolean) => {
+    const L = night ? NIGHT : DAY;
+    (scene.background as THREE.Color).setHex(L.sky);
+    const fog = scene.fog as THREE.Fog;
+    fog.color.setHex(L.sky);
+    // At night the stands fade into the dark beyond the floodlit pitch.
+    fog.near = L.fogNear;
+    fog.far = L.fogFar;
+    lights.hemi.color.setHex(L.hemiSky);
+    lights.hemi.groundColor.setHex(L.hemiGround);
+    lights.hemi.intensity = L.hemi;
+    // At night the "sun" stands in for the floodlights: same shadows, cooler light.
+    lights.sun.color.setHex(L.sun);
+    lights.sun.intensity = L.sunIntensity;
+  };
+
+  return { renderer, scene, camera, ball, net, setNight };
 }
 
-function addLights(scene: THREE.Scene): void {
-  scene.add(new THREE.HemisphereLight(0xdfefff, 0x2d5a27, 0.9));
+function addLights(scene: THREE.Scene): { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight } {
+  const hemi = new THREE.HemisphereLight(DAY.hemiSky, DAY.hemiGround, DAY.hemi);
+  scene.add(hemi);
 
   const sun = new THREE.DirectionalLight(0xffffff, 2.2);
   sun.position.set(12, 25, 18);
@@ -77,6 +99,7 @@ function addLights(scene: THREE.Scene): void {
   s.near = 1;
   s.far = 80;
   scene.add(sun);
+  return { hemi, sun };
 }
 
 /** Grass with mown stripes, drawn to a canvas texture so no image assets are needed. */

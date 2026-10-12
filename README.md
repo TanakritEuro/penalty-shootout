@@ -18,7 +18,8 @@ Pick a mode in the menu, then **Kick off**. Every shootout is best of five, then
   dives with the arrow keys; you swap every kick.
 
 Your record against the CPU (wins, streaks, scoring and saving rates, cups) is kept in this
-browser and shown in the menu.
+browser and shown in the menu. The menu also has an afternoon or floodlit night kick-off, and
+**Lite** graphics for slower devices (the default on phones and tablets).
 
 **Shooting:** move the mouse to aim, hold the left button to charge the power meter and
 release to shoot. Charging into the red zone overpowers the shot so it drifts high and
@@ -43,6 +44,7 @@ lift to shoot; tap the little ball to set spin; tap in the goal to dive; ☰ ope
 Play it online at https://tanakriteuro.github.io/penalty-shootout/ (every push to `main` redeploys).
 
 **Debugging:** add `?debug` to the URL for **R** (restart the shootout) and **1 / 2 / 3** (CPU
-keeper level), and `?timescale=0.1` to run the whole game at a tenth of the speed.
+keeper level), `?timescale=0.1` to run the whole game at a tenth of the speed, and `?stats` for
+frame rate, frame time, draw calls and triangles.
 
 See `CLAUDE.md` for the architecture, conventions and roadmap.

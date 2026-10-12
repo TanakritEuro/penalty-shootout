@@ -180,6 +180,10 @@ export const TUNING = {
     frequency: 16,
     wavenumber: 5,
   },
+  stadium: {
+    /** Fraction of seats with a fan in them (0–1). Lower it for weaker devices. */
+    crowdDensity: 0.85,
+  },
   director: {
     /** Slow motion and a camera cut fire when the ball gets this close to the goal line (m)... */
     triggerDistance: 2.2,
