@@ -78,7 +78,9 @@ model with `scripts/prepare-models.mjs`. What's left is playtesting and tuning.
 - `src/net.ts` — goal net panels and their ripple.
 - `src/physics.ts` — Rapier world and colliders.
 - `src/config.ts` — `TUNING`: every gameplay knob (power, spin, curve, keepers, camera, slow motion, net).
-- `src/main.ts` — entry point, fixed-step loop, feeds physics contacts to the kick.
+- `src/main.ts` — entry point: builds the `Game` and starts it.
+- `src/game/` — `game.ts` (wires everything; frame loop: fixed physics steps, then render),
+  `replays.ts` (per-kick recording, replay and highlights offers), `debug.ts` (URL debug flags).
 - `src/input/` — pointer input, keeper arrow keys and spin keys, latched for the fixed step.
 - `src/shooting/` — aim and reticle, power model, spin, aerodynamics, launch solver, outcome
   tracker, CPU kicker.
